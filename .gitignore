@@ -15,3 +15,7 @@ Thumbs.db
 *.pem
 *.pfx
 *.p12
+
+# Supabase CLI local state / build caches — regenerated locally, never shared
+supabase/.temp
+*.tsbuildinfo
