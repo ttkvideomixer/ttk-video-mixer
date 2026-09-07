@@ -14,8 +14,8 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest run",
-    "dist": "npm run build && electron-builder --win --x64",
-    "dist:mac": "npm run build && electron-builder --mac",
+    "dist": "npm run build && electron-builder --win --x64 --publish=never",
+    "dist:mac": "npm run build && electron-builder --mac --publish=never",
     "postinstall": "electron-builder install-app-deps",
     "check:commercial-setup": "node scripts/check-commercial-setup.mjs",
     "billing:setup": "node scripts/billing-setup.mjs"
