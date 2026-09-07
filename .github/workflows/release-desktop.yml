@@ -29,6 +29,9 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run dist
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -56,6 +59,9 @@ jobs:
       # below, electron-builder picks them up automatically for signing and
       # notarization — see package.json build.mac config.
       - run: npm run dist:mac
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - uses: actions/upload-artifact@v4
         with:
