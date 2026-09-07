@@ -2,6 +2,7 @@ export type DownloadPlatform = 'windows' | 'macos'
 
 export interface GithubReleaseAsset {
   name: string
+  url: string
   browser_download_url: string
   size: number
 }
@@ -16,7 +17,10 @@ export interface GithubRelease {
 export interface ResolvedDownload {
   available: true
   platform: DownloadPlatform
+  /** Web UI link — human-facing only, not fetchable without a GitHub session on a private repo. */
   url: string
+  /** GitHub API asset endpoint — fetchable server-side with a token + Accept: application/octet-stream, works for private repos. */
+  assetApiUrl: string
   version: string
   sizeBytes: number
   fileName: string
@@ -54,6 +58,7 @@ export function matchAssetForPlatform(
     available: true,
     platform,
     url: asset.browser_download_url,
+    assetApiUrl: asset.url,
     version: release.tag_name,
     sizeBytes: asset.size,
     fileName: asset.name

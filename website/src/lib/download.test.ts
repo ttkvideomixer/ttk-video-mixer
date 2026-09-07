@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { matchAssetForPlatform, pickLatestStableRelease, formatBytes, type GithubRelease } from './download'
 
-const windowsAsset = { name: 'TTK-Video-Mixer-Setup-1.2.0.exe', browser_download_url: 'https://example.com/win.exe', size: 123 }
-const macAsset = { name: 'TTK-Video-Mixer-1.2.0-universal.dmg', browser_download_url: 'https://example.com/mac.dmg', size: 456 }
+const windowsAsset = {
+  name: 'TTK-Video-Mixer-Setup-1.2.0.exe',
+  url: 'https://api.github.com/repos/owner/repo/releases/assets/1',
+  browser_download_url: 'https://example.com/win.exe',
+  size: 123
+}
+const macAsset = {
+  name: 'TTK-Video-Mixer-1.2.0-universal.dmg',
+  url: 'https://api.github.com/repos/owner/repo/releases/assets/2',
+  browser_download_url: 'https://example.com/mac.dmg',
+  size: 456
+}
 
 describe('matchAssetForPlatform', () => {
   it('finds the .exe asset for windows', () => {
@@ -11,6 +21,7 @@ describe('matchAssetForPlatform', () => {
       available: true,
       platform: 'windows',
       url: windowsAsset.browser_download_url,
+      assetApiUrl: windowsAsset.url,
       version: 'v1.2.0',
       sizeBytes: 123,
       fileName: windowsAsset.name

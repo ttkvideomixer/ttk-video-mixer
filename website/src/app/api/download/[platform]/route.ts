@@ -29,7 +29,25 @@ export async function GET(request: NextRequest, { params }: { params: { platform
 
   const resolved = await resolveDownload(platform)
   if (resolved.available) {
-    return NextResponse.redirect(resolved.url)
+    // The repo is private, so resolved.url (GitHub's web UI link) 404s for an
+    // anonymous browser. Fetch the asset server-side through the API asset
+    // endpoint (which accepts a token) and stream it back to the visitor
+    // instead of redirecting them straight to GitHub.
+    const token = process.env.GITHUB_TOKEN?.trim()
+    if (token) {
+      const assetResponse = await fetch(resolved.assetApiUrl, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/octet-stream' }
+      })
+      if (assetResponse.ok && assetResponse.body) {
+        return new Response(assetResponse.body, {
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': String(resolved.sizeBytes),
+            'Content-Disposition': `attachment; filename="${resolved.fileName}"`
+          }
+        })
+      }
+    }
   }
 
   if (platform === 'windows') {
