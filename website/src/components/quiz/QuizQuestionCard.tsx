@@ -8,9 +8,18 @@ interface Props {
   selectedIndex: number | null
   feedback: string | null
   onSelect: (index: number) => void
+  onNext: () => void
+  isLastQuestion: boolean
 }
 
-export default function QuizQuestionCard({ question, selectedIndex, feedback, onSelect }: Props): JSX.Element {
+export default function QuizQuestionCard({
+  question,
+  selectedIndex,
+  feedback,
+  onSelect,
+  onNext,
+  isLastQuestion
+}: Props): JSX.Element {
   return (
     <motion.div
       key={question.number}
@@ -43,14 +52,22 @@ export default function QuizQuestionCard({ question, selectedIndex, feedback, on
 
       <AnimatePresence>
         {feedback && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-5 rounded-xl border border-brand/30 bg-brand/5 px-4 py-3 text-center text-sm text-brand-light"
+            className="mt-5"
           >
-            {feedback}
-          </motion.p>
+            <p className="rounded-xl border border-brand/30 bg-brand/5 px-4 py-3 text-center text-sm text-brand-light">
+              {feedback}
+            </p>
+            <button
+              onClick={onNext}
+              className="mt-4 w-full rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+            >
+              {isLastQuestion ? 'Ver resultado' : 'Seguinte'}
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>

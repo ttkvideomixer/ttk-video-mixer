@@ -16,7 +16,6 @@ import AnalyzingProfile from '@/components/quiz/AnalyzingProfile'
 
 type Phase = 'loading' | 'intro' | 'quiz' | 'analyzing'
 
-const ANSWER_ADVANCE_DELAY_MS = 750
 const ANALYZING_DURATION_MS = 2600
 
 export default function OnboardingPage(): JSX.Element {
@@ -109,15 +108,19 @@ function OnboardingContent(): JSX.Element {
     if (supabase && user) {
       saveOnboardingAnswer(supabase, user.id, question.key, index).catch(() => undefined)
     }
+  }
 
-    setTimeout(() => {
-      setFeedback(null)
-      if (question.number >= TOTAL_QUESTIONS) {
-        runDiagnosisAndFinish(nextAnswers)
-      } else {
-        setQuestionNumber(question.number + 1)
-      }
-    }, ANSWER_ADVANCE_DELAY_MS)
+  const handleNext = (): void => {
+    const question = getQuestionByNumber(questionNumber)
+    if (!question) return
+    if (answers[question.key] === undefined) return
+
+    setFeedback(null)
+    if (question.number >= TOTAL_QUESTIONS) {
+      runDiagnosisAndFinish(answers)
+    } else {
+      setQuestionNumber(question.number + 1)
+    }
   }
 
   const goBack = (): void => {
@@ -177,6 +180,8 @@ function OnboardingContent(): JSX.Element {
                 selectedIndex={answers[question.key] ?? null}
                 feedback={feedback}
                 onSelect={handleSelect}
+                onNext={handleNext}
+                isLastQuestion={questionNumber >= TOTAL_QUESTIONS}
               />
             </div>
             {questionNumber > 1 && (
