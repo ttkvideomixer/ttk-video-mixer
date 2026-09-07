@@ -14,8 +14,11 @@ module.exports = {
   // supabase/functions runs on Deno (its own runtime, its own `deno lint` /
   // `deno check`), not on our Node/Vite toolchain — it uses `npm:`/`.ts`
   // Deno-style specifiers and Deno globals (`Deno.serve`) that this
-  // Node-oriented config isn't meant to understand.
-  ignorePatterns: ['out', 'release', 'node_modules', '*.cjs', 'supabase/functions/**'],
+  // Node-oriented config isn't meant to understand. website/ is its own
+  // Next.js project with its own package.json, node_modules and eslintrc
+  // (extending next/core-web-vitals) — it lints itself, and this root config
+  // can't resolve that config unless website's deps are installed too.
+  ignorePatterns: ['out', 'release', 'node_modules', '*.cjs', 'supabase/functions/**', 'website/**'],
   rules: {
     'react/react-in-jsx-scope': 'off',
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
