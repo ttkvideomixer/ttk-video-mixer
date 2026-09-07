@@ -1,0 +1,17 @@
+node_modules
+out
+release
+dist
+*.log
+.DS_Store
+Thumbs.db
+
+# Secrets / commercial config — never commit real credentials
+.env
+.env.local
+.env.production
+.env.*.local
+*.key
+*.pem
+*.pfx
+*.p12

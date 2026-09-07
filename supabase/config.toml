@@ -1,0 +1,58 @@
+project_id = "video-mixer"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "videomixer://auth/callback"
+additional_redirect_urls = ["videomixer://auth/callback", "videomixer://billing/success"]
+jwt_expiry = 3600
+enable_signup = true
+enable_confirmations = true
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_uri = "env(SUPABASE_AUTH_GOOGLE_REDIRECT_URI)"
+
+[functions]
+[functions.get-entitlement]
+verify_jwt = true
+[functions.authorize-generation]
+verify_jwt = true
+[functions.complete-generation]
+verify_jwt = true
+[functions.create-checkout]
+verify_jwt = true
+[functions.create-pix-payment]
+verify_jwt = true
+[functions.cancel-subscription]
+verify_jwt = true
+[functions.reactivate-subscription]
+verify_jwt = true
+[functions.manage-device]
+verify_jwt = true
+[functions.reconcile-subscription]
+verify_jwt = true
+[functions.delete-account]
+verify_jwt = true
+[functions.billing-webhook]
+verify_jwt = false
+[functions.release-expired-reservations]
+verify_jwt = false
+[functions.admin-actions]
+verify_jwt = true

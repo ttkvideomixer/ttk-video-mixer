@@ -1,0 +1,82 @@
+name: Release desktop (TTK Video Mixer)
+
+# Builds the Windows installer and the macOS dmg from the SAME source, then
+# publishes both to a GitHub Release for the pushed tag. The website's
+# /download page and /api/download/[platform] resolve the latest stable
+# release from this same repo (see website/src/lib/download.ts) — nothing
+# there is hardcoded, so a tag pushed here is what actually goes live.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/TTK-Video-Mixer-Setup-*.exe
+          if-no-files-found: error
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      # Unsigned build: no Apple Developer credentials are invented here.
+      # Once real APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID or a
+      # CSC_LINK certificate are added as repo secrets and wired into env
+      # below, electron-builder picks them up automatically for signing and
+      # notarization — see package.json build.mac config.
+      - run: npm run dist:mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: release/TTK-Video-Mixer-*.dmg
+          if-no-files-found: error
+
+  publish-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/windows-installer/*.exe
+            dist/macos-installer/*.dmg
