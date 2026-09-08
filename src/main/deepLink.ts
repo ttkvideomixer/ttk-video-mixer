@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { DEEP_LINK_SCHEME } from '@shared/deepLink'
 
 let currentHandler: ((url: string) => void) | null = null
+let authHandoffHandler: ((url: string) => void) | null = null
 
 /**
  * Registers `videomixer://` as this app's protocol so Windows routes a
@@ -27,10 +28,23 @@ export function setDeepLinkHandler(handler: ((url: string) => void) | null): voi
   currentHandler = handler
 }
 
+/**
+ * Unlike `setDeepLinkHandler`, this one is registered once at startup and
+ * never cleared — a `videomixer://auth/handoff` link can arrive at any time
+ * (the app wasn't waiting for it the way it waits for the Google OAuth
+ * callback), so it must always have somewhere to go.
+ */
+export function setAuthHandoffHandler(handler: ((url: string) => void) | null): void {
+  authHandoffHandler = handler
+}
+
 function dispatch(url: string): void {
-  if (url.startsWith(`${DEEP_LINK_SCHEME}://`)) {
-    currentHandler?.(url)
+  if (!url.startsWith(`${DEEP_LINK_SCHEME}://`)) return
+  if (url.includes('/auth/handoff')) {
+    authHandoffHandler?.(url)
+    return
   }
+  currentHandler?.(url)
 }
 
 /** Windows delivers the deep link as an argv entry, both on a fresh launch and via `second-instance`. */

@@ -1,9 +1,12 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import { IpcChannels } from '@shared/ipcChannels'
 import type { AuthUser } from '@shared/billing'
+import { parseAuthHandoffUrl } from '@shared/deepLink'
+import { setAuthHandoffHandler } from '../deepLink'
 import {
   getAccessToken,
   getCurrentUser,
+  redeemDesktopHandoff,
   sendPasswordReset,
   signInWithEmail,
   signInWithGoogle,
@@ -63,5 +66,28 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle(IpcChannels.authUpdatePassword, async (_event, newPassword: string) => {
     await updatePassword(newPassword)
+  })
+
+  // Unlike every other auth action above, this one isn't triggered by the
+  // renderer clicking something — it's the OS handing us a
+  // `videomixer://auth/handoff` link (from the website's "already have the
+  // app? sign in automatically" button), so the result is pushed to the
+  // renderer instead of returned from an invoke() call.
+  setAuthHandoffHandler((url) => {
+    const parsed = parseAuthHandoffUrl(url)
+    if (!parsed) {
+      mainWindow.webContents.send(IpcChannels.onAuthHandoffComplete, { user: null, error: 'Link de login inválido.' })
+      return
+    }
+
+    redeemDesktopHandoff(parsed.token)
+      .then((user) => {
+        trackSession(user)
+        mainWindow.webContents.send(IpcChannels.onAuthHandoffComplete, { user })
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Não foi possível concluir o login automático.'
+        mainWindow.webContents.send(IpcChannels.onAuthHandoffComplete, { user: null, error: message })
+      })
   })
 }

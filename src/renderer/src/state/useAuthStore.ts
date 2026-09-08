@@ -37,6 +37,7 @@ const HEARTBEAT_MS = 12 * 60_000
 declare global {
   interface Window {
     __vmUnsubscribeEntitlementEvents?: () => void
+    __vmUnsubscribeAuthHandoffEvents?: () => void
   }
 }
 
@@ -79,6 +80,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     window.__vmUnsubscribeEntitlementEvents?.()
     window.__vmUnsubscribeEntitlementEvents = window.api.onEntitlementChanged(() => {
       get().refreshEntitlement()
+    })
+
+    window.__vmUnsubscribeAuthHandoffEvents?.()
+    window.__vmUnsubscribeAuthHandoffEvents = window.api.onAuthHandoffComplete(({ user, error }) => {
+      if (user) {
+        set({ status: 'signedIn', user, authBusy: false, authError: null })
+        registerDeviceAndLoadEntitlement(set)
+      } else if (error) {
+        set({ authError: error, authBusy: false })
+      }
     })
 
     try {

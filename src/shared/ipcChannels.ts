@@ -37,6 +37,7 @@ export const IpcChannels = {
   onGenerationFinished: 'event:generation-finished',
   onLogEntry: 'event:log-entry',
   onEntitlementChanged: 'event:entitlement-changed',
+  onAuthHandoffComplete: 'event:auth-handoff-complete',
 
   // Auth
   authSignUp: 'auth:sign-up',

@@ -56,3 +56,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.admin-actions]
 verify_jwt = true
+[functions.create-desktop-handoff]
+verify_jwt = true
+[functions.redeem-desktop-handoff]
+verify_jwt = false

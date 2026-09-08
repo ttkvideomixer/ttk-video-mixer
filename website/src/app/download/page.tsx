@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import DownloadCard from '@/components/DownloadCard'
+import OpenInAppButton from '@/components/OpenInAppButton'
 import { resolveDownload, formatBytes } from '@/lib/download'
 import { findLocalWindowsInstaller } from '@/lib/devLocalInstaller'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
@@ -83,6 +84,8 @@ export default async function DownloadPage({ searchParams }: { searchParams: { e
               sizeLabel={'sizeLabel' in macos ? macos.sizeLabel : undefined}
             />
           </div>
+
+          {user && <OpenInAppButton />}
 
           <section id="instalacao" className="mt-16 grid gap-8 md:grid-cols-2">
             <div>

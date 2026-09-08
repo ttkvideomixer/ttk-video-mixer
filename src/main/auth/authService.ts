@@ -133,6 +133,34 @@ export function signInWithGoogle(): Promise<AuthUser | null> {
   })
 }
 
+/**
+ * Redeems a `videomixer://auth/handoff?token=...` deep link: exchanges the
+ * one-time token (from redeem-desktop-handoff) for a magic-link token_hash,
+ * then verifies it locally to establish a real session — the user never
+ * types a password, and this process never sees one either.
+ */
+export async function redeemDesktopHandoff(token: string): Promise<AuthUser | null> {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  if (!url) throw new Error('VITE_SUPABASE_URL não configurado.')
+
+  const response = await fetch(`${url}/functions/v1/redeem-desktop-handoff`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
+  })
+
+  const body = (await response.json().catch(() => ({}))) as { error?: { message?: string }; tokenHash?: string }
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? 'Não foi possível concluir o login automático.')
+  }
+
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase.auth.verifyOtp({ token_hash: body.tokenHash ?? '', type: 'magiclink' })
+  if (error) throw new Error(error.message)
+
+  return mapUser(data.user)
+}
+
 function normalizeTiktokUsername(input: string | null): string | undefined {
   if (!input) return undefined
   const trimmed = input.trim().replace(/^@/, '')
