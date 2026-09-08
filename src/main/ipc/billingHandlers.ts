@@ -13,8 +13,8 @@ import { listDevices, registerCurrentDevice, revokeDevice } from '../billing/dev
 
 export function registerBillingHandlers(): void {
   ipcMain.handle(IpcChannels.getEntitlement, async () => fetchEntitlement())
-  ipcMain.handle(IpcChannels.createCardCheckout, async () => createCardCheckout())
-  ipcMain.handle(IpcChannels.createPixCheckout, async () => createPixCheckout())
+  ipcMain.handle(IpcChannels.createCardCheckout, async (_event, document: string) => createCardCheckout(document))
+  ipcMain.handle(IpcChannels.createPixCheckout, async (_event, document: string) => createPixCheckout(document))
   ipcMain.handle(IpcChannels.cancelSubscription, async () => cancelSubscription())
   ipcMain.handle(IpcChannels.reactivateSubscription, async () => reactivateSubscription())
   ipcMain.handle(IpcChannels.reconcileSubscription, async () => reconcileSubscription())

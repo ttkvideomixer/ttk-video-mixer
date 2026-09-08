@@ -4,6 +4,7 @@ import { requireAuthedUser, getAdminClient, HttpError } from '../_shared/supabas
 import { enforceRateLimit } from '../_shared/rateLimit.ts'
 import { withIdempotency } from '../_shared/idempotency.ts'
 import { createPixOrderCheckoutLink, findOrCreatePagarmeCustomer, PIX_30_DAYS_PRICE_CENTS } from '../_shared/pagarme.ts'
+import { isValidCpf, sanitizeCpf } from '../_shared/cpf.ts'
 
 const PENDING_REUSE_WINDOW_MINUTES = 15
 
@@ -22,6 +23,12 @@ Deno.serve(async (req) => {
 
     const idempotencyKey = req.headers.get('Idempotency-Key')
     const admin = getAdminClient()
+
+    const { document } = (await req.json().catch(() => ({}))) as { document?: string }
+    if (!document || !isValidCpf(document)) {
+      throw new HttpError(400, ErrorCodes.INVALID_REQUEST, 'Informe um CPF válido para continuar.')
+    }
+    const cpf = sanitizeCpf(document)
 
     // Reuse a still-fresh pending Pix charge instead of stacking up dozens
     // from repeated clicks.
@@ -47,7 +54,8 @@ Deno.serve(async (req) => {
       if (!customerId) {
         const customer = await findOrCreatePagarmeCustomer(
           profile?.display_name ?? 'Video Mixer User',
-          profile?.email ?? user.email ?? ''
+          profile?.email ?? user.email ?? '',
+          cpf
         )
         customerId = customer.id
         await admin.from('entitlements').update({ customer_id: customerId, payment_provider: 'pagarme' }).eq('user_id', user.id)

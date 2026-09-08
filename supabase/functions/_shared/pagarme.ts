@@ -122,12 +122,23 @@ export interface PagarmeCustomer {
   email: string
 }
 
-export async function findOrCreatePagarmeCustomer(name: string, email: string): Promise<PagarmeCustomer> {
+/**
+ * Pagar.me requires a real CPF (document + document_type + type) to create
+ * a customer — name/email alone gets rejected. `document` must already be a
+ * validated, digits-only CPF (see _shared/cpf.ts / callers).
+ */
+export async function findOrCreatePagarmeCustomer(name: string, email: string, document: string): Promise<PagarmeCustomer> {
   // Pagar.me V5 doesn't offer a documented "find by email" filter that is
   // safe to rely on across accounts, so the caller is responsible for
   // persisting and reusing `provider_customer_id` once created (see
   // billing/subscriptions.provider_customer_id) rather than searching here.
-  const created = await pagarmeRequest<PagarmeCustomer>('/customers', 'POST', { name, email })
+  const created = await pagarmeRequest<PagarmeCustomer>('/customers', 'POST', {
+    name,
+    email,
+    type: 'individual',
+    document,
+    document_type: 'CPF'
+  })
   return created
 }
 

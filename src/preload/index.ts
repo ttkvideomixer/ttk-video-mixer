@@ -81,9 +81,10 @@ const api = {
 
   // Billing / entitlement / devices
   getEntitlement: (): Promise<EntitlementResponse> => ipcRenderer.invoke(IpcChannels.getEntitlement),
-  createCardCheckout: (): Promise<{ checkoutUrl?: string; alreadySubscribed?: boolean }> =>
-    ipcRenderer.invoke(IpcChannels.createCardCheckout),
-  createPixCheckout: (): Promise<{ checkoutUrl: string; reused?: boolean }> => ipcRenderer.invoke(IpcChannels.createPixCheckout),
+  createCardCheckout: (document: string): Promise<{ checkoutUrl?: string; alreadySubscribed?: boolean }> =>
+    ipcRenderer.invoke(IpcChannels.createCardCheckout, document),
+  createPixCheckout: (document: string): Promise<{ checkoutUrl: string; reused?: boolean }> =>
+    ipcRenderer.invoke(IpcChannels.createPixCheckout, document),
   cancelSubscription: (): Promise<{ ok: true; cancelAtPeriodEnd: boolean }> => ipcRenderer.invoke(IpcChannels.cancelSubscription),
   reactivateSubscription: (): Promise<{ ok: true; note: string }> => ipcRenderer.invoke(IpcChannels.reactivateSubscription),
   reconcileSubscription: (): Promise<{ ok: true; changed: boolean }> => ipcRenderer.invoke(IpcChannels.reconcileSubscription),

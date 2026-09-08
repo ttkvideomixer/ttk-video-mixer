@@ -5,6 +5,7 @@ import { enforceRateLimit } from '../_shared/rateLimit.ts'
 import { withIdempotency } from '../_shared/idempotency.ts'
 import { createCardSubscriptionCheckoutLink, findOrCreatePagarmeCustomer, PRO_MONTHLY_PRICE_CENTS } from '../_shared/pagarme.ts'
 import { requireEnv } from '../_shared/env.ts'
+import { isValidCpf, sanitizeCpf } from '../_shared/cpf.ts'
 
 /**
  * POST /billing/create-checkout — card subscription. The price and plan
@@ -22,6 +23,12 @@ Deno.serve(async (req) => {
 
     const idempotencyKey = req.headers.get('Idempotency-Key')
     const admin = getAdminClient()
+
+    const { document } = (await req.json().catch(() => ({}))) as { document?: string }
+    if (!document || !isValidCpf(document)) {
+      throw new HttpError(400, ErrorCodes.INVALID_REQUEST, 'Informe um CPF válido para continuar.')
+    }
+    const cpf = sanitizeCpf(document)
 
     const { data: existingSub } = await admin
       .from('subscriptions')
@@ -50,7 +57,8 @@ Deno.serve(async (req) => {
       if (!customerId) {
         const customer = await findOrCreatePagarmeCustomer(
           profile?.display_name ?? 'Video Mixer User',
-          profile?.email ?? user.email ?? ''
+          profile?.email ?? user.email ?? '',
+          cpf
         )
         customerId = customer.id
         await admin.from('entitlements').update({ customer_id: customerId, payment_provider: 'pagarme' }).eq('user_id', user.id)

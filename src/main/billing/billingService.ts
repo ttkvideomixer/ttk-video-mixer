@@ -12,12 +12,12 @@ async function invoke<T>(name: string, body?: Record<string, unknown>): Promise<
   return data as T
 }
 
-export async function createCardCheckout(): Promise<{ checkoutUrl?: string; alreadySubscribed?: boolean }> {
-  return invoke('create-checkout')
+export async function createCardCheckout(document: string): Promise<{ checkoutUrl?: string; alreadySubscribed?: boolean }> {
+  return invoke('create-checkout', { document })
 }
 
-export async function createPixCheckout(): Promise<{ checkoutUrl: string; reused?: boolean }> {
-  return invoke('create-pix-payment')
+export async function createPixCheckout(document: string): Promise<{ checkoutUrl: string; reused?: boolean }> {
+  return invoke('create-pix-payment', { document })
 }
 
 export async function cancelSubscription(): Promise<{ ok: true; cancelAtPeriodEnd: boolean }> {

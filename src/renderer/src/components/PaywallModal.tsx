@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { useAuthStore } from '../state/useAuthStore'
 import { billingErrorMessage, PIX_30_DAYS_PRICE_LABEL, PRO_MONTHLY_PRICE_LABEL } from '@shared/billing'
+import { formatCpf, isValidCpf, sanitizeCpf } from '@shared/cpf'
 import ModalShell from './ModalShell'
 
 type CheckoutStatus = 'idle' | 'creating' | 'waiting' | 'paid' | 'error'
@@ -17,6 +18,8 @@ function PaywallModal(): JSX.Element {
 
   const [status, setStatus] = useState<CheckoutStatus>('idle')
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [cpf, setCpf] = useState('')
+  const cpfValid = isValidCpf(cpf)
   const pollHandleRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollDeadlineRef = useRef<number>(0)
 
@@ -47,10 +50,14 @@ function PaywallModal(): JSX.Element {
   }
 
   const handleCardCheckout = async (): Promise<void> => {
+    if (!cpfValid) {
+      setCheckoutError('Informe um CPF válido para continuar.')
+      return
+    }
     setStatus('creating')
     setCheckoutError(null)
     try {
-      const result = await window.api.createCardCheckout()
+      const result = await window.api.createCardCheckout(sanitizeCpf(cpf))
       if (result.alreadySubscribed) {
         await refreshEntitlement()
         setStatus('paid')
@@ -67,10 +74,14 @@ function PaywallModal(): JSX.Element {
   }
 
   const handlePixCheckout = async (): Promise<void> => {
+    if (!cpfValid) {
+      setCheckoutError('Informe um CPF válido para continuar.')
+      return
+    }
     setStatus('creating')
     setCheckoutError(null)
     try {
-      const result = await window.api.createPixCheckout()
+      const result = await window.api.createPixCheckout(sanitizeCpf(cpf))
       window.open(result.checkoutUrl, '_blank')
       startPolling()
     } catch (err) {
@@ -110,12 +121,26 @@ function PaywallModal(): JSX.Element {
         {status !== 'paid' && (
           <div className="flex flex-col gap-3 rounded-2xl border border-brand/40 bg-bg-soft p-4">
             <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-400">CPF (obrigatório para pagamento)</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                value={formatCpf(cpf)}
+                onChange={(e) => setCpf(sanitizeCpf(e.target.value))}
+                maxLength={14}
+                disabled={busy}
+                className="w-full rounded-lg border border-bg-border bg-bg px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-brand focus:outline-none disabled:opacity-50"
+              />
+            </div>
+
+            <div>
               <p className="text-lg font-extrabold text-white">{PRO_MONTHLY_PRICE_LABEL}/mês</p>
               <p className="text-xs text-gray-400">Vídeos ilimitados, sem marca d&apos;água. Cancele quando quiser.</p>
             </div>
             <button
               onClick={handleCardCheckout}
-              disabled={busy}
+              disabled={busy || !cpfValid}
               className="rounded-lg bg-brand py-2.5 text-sm font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
             >
               {status === 'creating' ? 'Aguarde...' : 'Assinar com Cartão'}
@@ -133,7 +158,7 @@ function PaywallModal(): JSX.Element {
             </div>
             <button
               onClick={handlePixCheckout}
-              disabled={busy}
+              disabled={busy || !cpfValid}
               className="rounded-lg border border-brand px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-brand-light hover:bg-brand/10 disabled:opacity-50"
             >
               {status === 'creating' ? 'Aguarde...' : 'Pagar 30 dias com Pix'}
