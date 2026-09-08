@@ -78,7 +78,8 @@ export async function createCardSubscriptionCheckoutLink(params: CreateCardCheck
     name: 'Video Mixer Pro — assinatura mensal',
     is_building: false,
     payment_settings: {
-      accepted_payment_methods: ['credit_card']
+      accepted_payment_methods: ['credit_card'],
+      credit_card_settings: { operation_type: 'auth_and_capture' }
     },
     cart_settings: {
       recurrences: [{ start_in: 1, plan_id: params.planId }]
@@ -103,7 +104,8 @@ export async function createPixOrderCheckoutLink(params: CreateOrderCheckoutLink
     name: params.itemName,
     is_building: false,
     payment_settings: {
-      accepted_payment_methods: ['pix']
+      accepted_payment_methods: ['pix'],
+      pix_settings: { expires_in: 3600 }
     },
     cart_settings: {
       items: [{ amount: params.amountCents, name: params.itemName, default_quantity: 1 }]
