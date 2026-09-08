@@ -1,14 +1,22 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { Suspense, useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import AuthCard from '@/components/AuthCard'
 import { getBrowserSupabaseClient } from '@/lib/supabase/client'
 import { track } from '@/lib/analytics'
 import { useToast } from '@/components/ui/Toast'
 
 export default function LoginPage(): JSX.Element {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  )
+}
+
+function LoginContent(): JSX.Element {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -16,6 +24,8 @@ export default function LoginPage(): JSX.Element {
   const [mode, setMode] = useState<'password' | 'forgot'>('password')
   const [resetSent, setResetSent] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = searchParams.get('next') || '/onboarding'
   const { push } = useToast()
   const supabase = getBrowserSupabaseClient()
 
@@ -32,7 +42,7 @@ export default function LoginPage(): JSX.Element {
     try {
       if (mode === 'forgot') {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
         })
         if (resetError) throw resetError
         setResetSent(true)
@@ -43,7 +53,7 @@ export default function LoginPage(): JSX.Element {
       if (signInError) throw signInError
       track('login', { method: 'password' })
       push('success', 'Login realizado com sucesso.')
-      router.push('/onboarding')
+      router.push(next)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível entrar. Verifique seus dados.')
@@ -60,7 +70,7 @@ export default function LoginPage(): JSX.Element {
     setBusy(true)
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` }
     })
     if (oauthError) {
       setError(oauthError.message)
