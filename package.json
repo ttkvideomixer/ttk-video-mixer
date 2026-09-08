@@ -94,7 +94,6 @@
         }
       ],
       "artifactName": "TTK-Video-Mixer-Setup-${version}.${ext}",
-      "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
