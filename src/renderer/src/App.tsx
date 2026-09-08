@@ -23,6 +23,7 @@ import CompletionModal from './components/CompletionModal'
 import GenerationBusyModal from './components/GenerationBusyModal'
 import ProgressScreen from './components/ProgressScreen'
 import FfmpegStatusBar from './components/FfmpegStatusBar'
+import UpdateReadyBanner from './components/UpdateReadyBanner'
 
 function App(): JSX.Element {
   const ready = useAppStore((s) => s.ready)
@@ -58,18 +59,27 @@ function App(): JSX.Element {
 
   if (!ready || authStatus === 'loading') {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-bg text-bg-border">
-        <p className="text-sm text-gray-400">Carregando TTK Video Mixer...</p>
+      <div className="flex h-screen w-screen flex-col bg-bg text-bg-border">
+        <UpdateReadyBanner />
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-sm text-gray-400">Carregando TTK Video Mixer...</p>
+        </div>
       </div>
     )
   }
 
   if (authStatus === 'signedOut') {
-    return <AuthScreen />
+    return (
+      <>
+        <UpdateReadyBanner />
+        <AuthScreen />
+      </>
+    )
   }
 
   return (
     <div className="flex h-screen w-screen flex-col bg-bg">
+      <UpdateReadyBanner />
       <Header />
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {currentView === 'progress' ? (

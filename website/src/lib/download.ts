@@ -69,23 +69,36 @@ export function pickLatestStableRelease(releases: GithubRelease[]): GithubReleas
   return releases.find((r) => !r.prerelease && !r.draft) ?? null
 }
 
+/**
+ * Shared by resolveDownload (website /download buttons) and the
+ * /api/update/[platform] auto-update feed — both need the SAME latest
+ * stable release's asset list, just matched differently (by platform
+ * extension vs. by exact update-manifest filename).
+ */
+export async function fetchLatestStableRelease(): Promise<GithubRelease | null> {
+  const repo = process.env.GITHUB_REPOSITORY?.trim()
+  if (!repo) return null
+
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
+  const token = process.env.GITHUB_TOKEN?.trim()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=10`, {
+    headers,
+    next: { revalidate: 300 }
+  })
+  if (!response.ok) return null
+
+  const releases = (await response.json()) as GithubRelease[]
+  return pickLatestStableRelease(releases)
+}
+
 export async function resolveDownload(platform: DownloadPlatform): Promise<DownloadResolution> {
   const repo = process.env.GITHUB_REPOSITORY?.trim()
   if (!repo) return { available: false, platform, reason: 'not_configured' }
 
   try {
-    const headers: Record<string, string> = { Accept: 'application/vnd.github+json' }
-    const token = process.env.GITHUB_TOKEN?.trim()
-    if (token) headers.Authorization = `Bearer ${token}`
-
-    const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=10`, {
-      headers,
-      next: { revalidate: 300 }
-    })
-    if (!response.ok) return { available: false, platform, reason: 'fetch_failed' }
-
-    const releases = (await response.json()) as GithubRelease[]
-    const latest = pickLatestStableRelease(releases)
+    const latest = await fetchLatestStableRelease()
     if (!latest) return { available: false, platform, reason: 'no_matching_asset' }
 
     const matched = matchAssetForPlatform(latest, platform)

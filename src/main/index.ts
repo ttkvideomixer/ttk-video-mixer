@@ -6,6 +6,7 @@ import { registerAuthHandlers } from './ipc/authHandlers'
 import { registerBillingHandlers } from './ipc/billingHandlers'
 import { registerMediaProtocolAsPrivileged, registerMediaProtocolHandler } from './mediaProtocol'
 import { registerDeepLinkProtocol, handleDeepLinkArgv, handleOpenUrl } from './deepLink'
+import { initAutoUpdater } from './updater'
 
 registerMediaProtocolAsPrivileged()
 registerDeepLinkProtocol()
@@ -44,6 +45,10 @@ if (!gotSingleInstanceLock) {
     registerIpcHandlers(mainWindow)
     registerAuthHandlers(mainWindow)
     registerBillingHandlers()
+
+    // Meaningless (and noisy) against an unpackaged dev build — there's no
+    // installed app for electron-updater to check a version against.
+    if (!is.dev) initAutoUpdater(mainWindow)
 
     // Launched directly via the protocol (e.g. app wasn't already running
     // when the browser redirect fired).

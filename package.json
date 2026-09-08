@@ -94,7 +94,14 @@
         }
       ],
       "artifactName": "TTK-Video-Mixer-Setup-${version}.${ext}",
-      "verifyUpdateCodeSignature": false
+      "verifyUpdateCodeSignature": false,
+      "publish": [
+        {
+          "provider": "generic",
+          "url": "https://ttkvideomixer.vercel.app/api/update/windows",
+          "channel": "latest"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -107,12 +114,23 @@
         {
           "target": "dmg",
           "arch": ["universal"]
+        },
+        {
+          "target": "zip",
+          "arch": ["universal"]
         }
       ],
       "artifactName": "TTK-Video-Mixer-${version}-${arch}.${ext}",
       "category": "public.app-category.video",
       "hardenedRuntime": true,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "publish": [
+        {
+          "provider": "generic",
+          "url": "https://ttkvideomixer.vercel.app/api/update/macos",
+          "channel": "latest"
+        }
+      ]
     },
     "dmg": {
       "sign": false

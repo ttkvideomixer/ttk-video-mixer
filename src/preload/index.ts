@@ -67,6 +67,8 @@ const api = {
   onEntitlementChanged: (callback: () => void) => subscribe(IpcChannels.onEntitlementChanged, callback),
   onAuthHandoffComplete: (callback: (payload: { user: AuthUser | null; error?: string }) => void) =>
     subscribe(IpcChannels.onAuthHandoffComplete, callback),
+  onUpdateReady: (callback: (payload: { version: string }) => void) => subscribe(IpcChannels.onUpdateReady, callback),
+  restartAndUpdate: (): Promise<void> => ipcRenderer.invoke(IpcChannels.restartAndUpdate),
 
   // Auth
   authSignUp: (input: { name: string; email: string; password: string; tiktokUsername: string | null }) =>

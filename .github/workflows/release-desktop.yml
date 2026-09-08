@@ -36,7 +36,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: release/TTK-Video-Mixer-Setup-*.exe
+          path: |
+            release/TTK-Video-Mixer-Setup-*.exe
+            release/TTK-Video-Mixer-Setup-*.exe.blockmap
+            release/latest.yml
           if-no-files-found: error
 
   build-macos:
@@ -66,7 +69,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos-installer
-          path: release/TTK-Video-Mixer-*.dmg
+          path: |
+            release/TTK-Video-Mixer-*.dmg
+            release/TTK-Video-Mixer-*.zip
+            release/latest-mac.yml
           if-no-files-found: error
 
   publish-release:
@@ -89,4 +95,8 @@ jobs:
           generate_release_notes: true
           files: |
             dist/windows-installer/*.exe
+            dist/windows-installer/*.blockmap
+            dist/windows-installer/latest.yml
             dist/macos-installer/*.dmg
+            dist/macos-installer/*.zip
+            dist/macos-installer/latest-mac.yml
