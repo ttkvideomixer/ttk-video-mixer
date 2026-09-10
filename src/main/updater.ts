@@ -1,5 +1,5 @@
 import { autoUpdater } from 'electron-updater'
-import { ipcMain, type BrowserWindow } from 'electron'
+import { app, ipcMain, type BrowserWindow } from 'electron'
 import { IpcChannels } from '@shared/ipcChannels'
 
 const CHECK_INTERVAL_MS = 4 * 60 * 60_000
@@ -11,17 +11,40 @@ const FIRST_CHECK_DELAY_MS = 15_000
  * forced restart. The renderer only hears about it once a downloaded
  * update is ready (see onUpdateReady), so it can offer "restart now" as an
  * optional action instead of surprising the user mid-task.
+ *
+ * Every install (whether from the "Reiniciar agora" button or from a
+ * normal quit) goes through the SAME explicit `quitAndInstall(true, true)`
+ * call — isSilent so the NSIS installer never flashes its wizard UI (which
+ * looks exactly like a fresh install to someone who didn't ask for one),
+ * isForceRunAfter so the app comes back up on its own afterwards. We don't
+ * rely on `autoInstallOnAppQuit`'s own default quitAndInstall() call here
+ * because it is NOT silent — that's what caused the update to visibly
+ * "reinstall" instead of applying invisibly.
  */
 export function initAutoUpdater(mainWindow: BrowserWindow): void {
   autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.autoInstallOnAppQuit = false
+
+  let updateReady = false
+  let installing = false
+
+  const install = (): void => {
+    installing = true
+    autoUpdater.quitAndInstall(true, true)
+  }
 
   autoUpdater.on('update-downloaded', (info) => {
+    updateReady = true
     mainWindow.webContents.send(IpcChannels.onUpdateReady, { version: info.version })
   })
 
-  ipcMain.handle(IpcChannels.restartAndUpdate, () => {
-    autoUpdater.quitAndInstall()
+  ipcMain.handle(IpcChannels.restartAndUpdate, () => install())
+
+  app.on('before-quit', (event) => {
+    if (updateReady && !installing) {
+      event.preventDefault()
+      install()
+    }
   })
 
   autoUpdater.on('error', (err) => {
