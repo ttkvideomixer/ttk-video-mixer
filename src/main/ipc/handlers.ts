@@ -66,6 +66,7 @@ let activeQueue: GenerationQueue | null = null
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(IpcChannels.ffmpegStatus, (): FfmpegStatus => resolveFfmpegPaths())
+  ipcMain.handle(IpcChannels.getAppVersion, (): string => app.getVersion())
 
   ipcMain.handle(IpcChannels.importVideos, async (): Promise<ImportedVideoDescriptor[]> => {
     const result = await dialog.showOpenDialog(mainWindow, {

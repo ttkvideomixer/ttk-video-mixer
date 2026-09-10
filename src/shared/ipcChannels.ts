@@ -10,6 +10,7 @@ export const IpcChannels = {
 
   // ffmpeg
   ffmpegStatus: 'ffmpeg:status',
+  getAppVersion: 'app:get-version',
 
   // Projects
   saveProject: 'project:save',

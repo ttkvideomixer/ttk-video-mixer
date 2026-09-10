@@ -22,6 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 function AccountScreen(): JSX.Element {
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   const closeModal = useAppStore((s) => s.closeModal)
   const user = useAuthStore((s) => s.user)
   const entitlement = useAuthStore((s) => s.entitlement)
@@ -39,6 +40,7 @@ function AccountScreen(): JSX.Element {
   useEffect(() => {
     refreshEntitlement()
     refreshDevices()
+    window.api.getAppVersion().then(setAppVersion)
   }, [refreshEntitlement, refreshDevices])
 
   const runAction = async (key: string, fn: () => Promise<void>): Promise<void> => {
@@ -86,6 +88,7 @@ function AccountScreen(): JSX.Element {
       <div className="flex flex-col gap-5">
         <div>
           <p className="text-sm font-semibold text-white">{user?.email ?? '—'}</p>
+          {appVersion && <p className="mt-0.5 text-[11px] text-gray-500">Versão {appVersion}</p>}
         </div>
 
         <div className="rounded-xl border border-bg-border bg-bg-soft p-4">

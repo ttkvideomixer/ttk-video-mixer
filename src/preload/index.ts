@@ -24,6 +24,7 @@ function subscribe<T>(channel: string, callback: (payload: T) => void): () => vo
 
 const api = {
   ffmpegStatus: (): Promise<FfmpegStatus> => ipcRenderer.invoke(IpcChannels.ffmpegStatus),
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke(IpcChannels.getAppVersion),
 
   importVideos: (): Promise<ImportedVideoDescriptor[]> => ipcRenderer.invoke(IpcChannels.importVideos),
   importFolder: (): Promise<ImportedVideoDescriptor[]> => ipcRenderer.invoke(IpcChannels.importFolder),
