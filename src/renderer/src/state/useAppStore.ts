@@ -502,7 +502,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ activeModal: 'generationBusy' })
       return
     }
-    const { hooks, bodies, ctas, testSelection, exportSettings, overlays, silenceTrim, visualCta } = get()
+    const { hooks, bodies, ctas, testSelection, exportSettings, overlays, silenceTrim, visualCta, frameSettings, frameFilePaths } =
+      get()
     const hook = hooks.find((h) => h.id === testSelection.hookId) ?? hooks[0]
     const body = bodies.find((b) => b.id === testSelection.bodyId) ?? bodies[0]
     const cta = ctas.find((c) => c.id === testSelection.ctaId) ?? ctas[0]
@@ -522,6 +523,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ testPreviewLoading: true, testPreviewError: null, testPreviewPath: null, previewExampleVariation: rolledVariation })
     try {
       const ctaPhrase = visualCta.enabled ? distributeCtaPhrases(1, Date.now())[0] : null
+      const framesEligible = frameSettings.enabled && exportSettings.resolution === FRAME_ELIGIBLE_RESOLUTION
+      const framePath =
+        framesEligible && frameFilePaths.length > 0
+          ? frameFilePaths[Math.floor(Math.random() * frameFilePaths.length)]
+          : null
       // The underlying clip is rendered WITHOUT burning the text in: the
       // Preview screen draws the hook/CTA text itself as a live, draggable
       // HTML overlay (using the exact same font/size/wrap math as ffmpeg),
@@ -536,7 +542,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         silenceTrimEnabled: silenceTrim.enabled,
         hookTextContent: null,
         visualCtaPhrase: null,
-        framePath: null,
+        framePath,
         variation: rolledVariation
       })
       set({ testPreviewPath: path, testPreviewLoading: false, previewExampleCtaPhrase: ctaPhrase })
