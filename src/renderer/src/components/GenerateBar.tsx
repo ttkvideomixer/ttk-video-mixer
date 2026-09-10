@@ -1,4 +1,4 @@
-import { useAppStore } from '../state/useAppStore'
+import { getMissingGenerateRequirements, useAppStore } from '../state/useAppStore'
 import { calculateTotalCombinations } from '@shared/combinations'
 import { buildGenerationJobs } from '@shared/jobBuilder'
 import { formatNumberPtBr } from '../utils/format'
@@ -30,13 +30,7 @@ function GenerateBar(): JSX.Element {
       ? baseTotal * enabledHookTexts.length
       : baseTotal
 
-  const missing: string[] = []
-  if (hooks.length === 0) missing.push('Adicione pelo menos um vídeo de Gancho.')
-  if (bodies.length === 0) missing.push('Adicione pelo menos um vídeo de Corpo.')
-  if (ctas.length === 0) missing.push('Adicione pelo menos um vídeo de CTA.')
-  if (!outputFolder) missing.push('Escolha uma pasta de destino.')
-
-  const canGenerate = missing.length === 0 && previewApproved
+  const missing = getMissingGenerateRequirements({ hooks, bodies, ctas, outputFolder, previewApproved })
 
   const handleExportCsv = async () => {
     const outputFolderPath = computeOutputFolderPath()
@@ -140,15 +134,11 @@ function GenerateBar(): JSX.Element {
 
       <div className="flex flex-col items-center gap-2 border-t border-bg-border pt-4">
         <button
-          disabled={!canGenerate}
           onClick={requestGenerate}
-          className="w-full max-w-md rounded-2xl bg-brand py-4 text-lg font-extrabold uppercase tracking-wide text-white shadow-card hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-bg-border disabled:text-gray-500"
+          className="w-full max-w-md rounded-2xl bg-brand py-4 text-lg font-extrabold uppercase tracking-wide text-white shadow-card hover:bg-brand-dark"
         >
           Gerar Vídeos
         </button>
-        {!previewApproved && missing.length === 0 && (
-          <p className="text-center text-xs text-warning">Visualize e aprove uma combinação em &ldquo;Preview&rdquo; antes de gerar.</p>
-        )}
         {missing.length > 0 && (
           <ul className="text-center text-xs text-gray-500">
             {missing.map((m) => (

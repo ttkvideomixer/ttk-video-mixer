@@ -58,8 +58,8 @@ function VideoGroupCard({ category }: Props): JSX.Element {
   const setVisualCtaEnabled = useAppStore((s) => s.setVisualCtaEnabled)
 
   const [dragActive, setDragActive] = useState(false)
+  const [importing, setImporting] = useState(false)
   const dragIndexRef = useRef<number | null>(null)
-  const busyRef = useRef(false)
 
   return (
     <div
@@ -90,19 +90,30 @@ function VideoGroupCard({ category }: Props): JSX.Element {
 
       <div className="flex gap-2">
         <button
-          disabled={busyRef.current}
+          disabled={importing}
           onClick={async () => {
-            busyRef.current = true
-            await importCategory(category)
-            busyRef.current = false
+            setImporting(true)
+            try {
+              await importCategory(category)
+            } finally {
+              setImporting(false)
+            }
           }}
-          className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark"
+          className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
         >
           {meta.addLabel}
         </button>
         <button
-          onClick={() => importCategoryFolder(category)}
-          className="rounded-lg border border-bg-border px-3 py-2 text-xs text-gray-300 hover:bg-bg-soft"
+          disabled={importing}
+          onClick={async () => {
+            setImporting(true)
+            try {
+              await importCategoryFolder(category)
+            } finally {
+              setImporting(false)
+            }
+          }}
+          className="rounded-lg border border-bg-border px-3 py-2 text-xs text-gray-300 hover:bg-bg-soft disabled:opacity-50"
           title="Importar todos os vídeos de uma pasta"
         >
           Pasta

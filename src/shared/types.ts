@@ -18,10 +18,11 @@ export interface VideoFile {
 export type ResolutionPreset =
   | 'original'
   | '1080x1920'
-  | '720x1280'
   | '1080x1350'
   | '1080x1080'
   | '1920x1080'
+  | '1440x1080'
+  | '1080x1620'
 
 export type FpsPreset = 'original' | '30' | '60'
 
@@ -260,6 +261,8 @@ export interface PreferencesSchema {
   lastPrefix: string
   createSubfolderPerProject: boolean
   recentProjects: RecentProjectEntry[]
+  /** Folder the most recent successful generation (batch or single) wrote videos to — survives new projects and app restarts. */
+  lastGeneratedFolder: string | null
 }
 
 export interface ImportedVideoDescriptor {

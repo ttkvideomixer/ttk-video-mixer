@@ -97,6 +97,7 @@ export type ModalName =
   | 'confirmCancel'
   | 'confirmNewSeed'
   | 'generationBusy'
+  | 'missingRequirements'
   | 'paywall'
   | 'account'
   | null
@@ -112,6 +113,8 @@ interface AppState {
   bodies: VideoFile[]
   ctas: VideoFile[]
   outputFolder: string | null
+  /** Where the most recent generation actually wrote videos — survives "Novo Projeto" and app restarts, unlike generation.outputFolderUsed. */
+  lastGeneratedFolder: string | null
   createSubfolderPerProject: boolean
   prefix: string
   exportSettings: ExportSettings
@@ -165,6 +168,7 @@ interface AppState {
 
   openHookTextsModal: () => void
   addHookText: () => void
+  addHookTexts: (texts: string[]) => void
   updateHookText: (id: string, text: string) => void
   removeHookText: (id: string) => void
   setVisualCtaEnabled: (enabled: boolean) => void
@@ -186,7 +190,6 @@ interface AppState {
   setTestSelection: (partial: Partial<AppState['testSelection']>) => void
   runTestPreview: () => Promise<void>
   generateSingleFromTest: () => Promise<void>
-  rollNewExampleVariation: () => void
   approvePreview: () => void
   toggleLogPanel: () => void
 
@@ -231,6 +234,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   bodies: [],
   ctas: [],
   outputFolder: null,
+  lastGeneratedFolder: null,
   createSubfolderPerProject: true,
   prefix: DEFAULT_PREFIX,
   exportSettings: DEFAULT_EXPORT_SETTINGS,
@@ -275,6 +279,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       projectId,
       exportSettings: preferences.lastExportSettings,
       outputFolder: preferences.lastOutputFolder,
+      lastGeneratedFolder: preferences.lastGeneratedFolder,
       prefix: preferences.lastPrefix,
       createSubfolderPerProject: preferences.createSubfolderPerProject
     })
@@ -398,6 +403,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       previewApproved: false
     })),
 
+  // One line pasted -> one hook text, so someone can paste a whole list of
+  // ideas at once instead of clicking "+ Adicionar Texto" per line.
+  addHookTexts: (texts) =>
+    set((state) => {
+      const cleaned = texts.map((t) => t.trim().slice(0, 90)).filter((t) => t.length > 0)
+      if (cleaned.length === 0) return {}
+      const startOrder = state.hookTexts.length
+      return {
+        hookTexts: [
+          ...state.hookTexts,
+          ...cleaned.map((text, i) => ({
+            id: `ht-${crypto.randomUUID()}`,
+            text,
+            order: startOrder + i,
+            enabled: true
+          }))
+        ],
+        previewApproved: false
+      }
+    }),
+
   updateHookText: (id, text) =>
     set((state) => ({
       hookTexts: state.hookTexts.map((t) => (t.id === id ? { ...t, text: text.slice(0, 90) } : t)),
@@ -464,17 +490,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ activeModal: 'generationBusy' })
       return
     }
-    const {
-      hooks,
-      bodies,
-      ctas,
-      testSelection,
-      exportSettings,
-      overlays,
-      silenceTrim,
-      visualCta,
-      previewExampleVariation
-    } = get()
+    const { hooks, bodies, ctas, testSelection, exportSettings, overlays, silenceTrim, visualCta } = get()
     const hook = hooks.find((h) => h.id === testSelection.hookId) ?? hooks[0]
     const body = bodies.find((b) => b.id === testSelection.bodyId) ?? bodies[0]
     const cta = ctas.find((c) => c.id === testSelection.ctaId) ?? ctas[0]
@@ -482,7 +498,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ testPreviewError: 'Selecione um gancho, um corpo e um CTA para visualizar.' })
       return
     }
-    set({ testPreviewLoading: true, testPreviewError: null, testPreviewPath: null })
+    // Rolling a fresh variation here (instead of a separate "Nova Variação"
+    // button) means every preview click shows a genuinely different
+    // creative variation, not the same one repeated.
+    const { creativeVariation } = get()
+    const rolledVariation = buildVariationSequence(
+      creativeVariation,
+      1,
+      Date.now() + Math.floor(Math.random() * 1e6)
+    )[0]
+    set({ testPreviewLoading: true, testPreviewError: null, testPreviewPath: null, previewExampleVariation: rolledVariation })
     try {
       const ctaPhrase = visualCta.enabled ? distributeCtaPhrases(1, Date.now())[0] : null
       // The underlying clip is rendered WITHOUT burning the text in: the
@@ -499,7 +524,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         silenceTrimEnabled: silenceTrim.enabled,
         hookTextContent: null,
         visualCtaPhrase: null,
-        variation: previewExampleVariation
+        variation: rolledVariation
       })
       set({ testPreviewPath: path, testPreviewLoading: false, previewExampleCtaPhrase: ctaPhrase })
     } catch (error) {
@@ -566,7 +591,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         variation: previewExampleVariation,
         deviceId
       })
-      set({ testPreviewLoading: false })
+      set({ testPreviewLoading: false, lastGeneratedFolder: outputFolder })
+      window.api.setPreferences({ lastGeneratedFolder: outputFolder })
       useAuthStore.getState().refreshEntitlement()
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -578,12 +604,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       set({ testPreviewError: message, testPreviewLoading: false })
     }
-  },
-
-  rollNewExampleVariation: () => {
-    const { creativeVariation } = get()
-    const variation = buildVariationSequence(creativeVariation, 1, Date.now() + Math.floor(Math.random() * 1e6))[0]
-    set({ previewExampleVariation: variation, testPreviewPath: null })
   },
 
   approvePreview: () => {
@@ -603,8 +623,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   requestGenerate: () => {
-    if (isGenerationActive(get().generation)) {
+    const state = get()
+    if (isGenerationActive(state.generation)) {
       set({ activeModal: 'generationBusy' })
+      return
+    }
+    if (getMissingGenerateRequirements(state).length > 0) {
+      set({ activeModal: 'missingRequirements' })
       return
     }
     set({ activeModal: 'confirmGenerate' })
@@ -677,6 +702,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({
       currentView: 'progress',
+      lastGeneratedFolder: outputFolder,
       generation: {
         jobOrder,
         jobsById,
@@ -688,6 +714,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         outputFolderUsed: outputFolder
       }
     })
+    window.api.setPreferences({ lastGeneratedFolder: outputFolder })
 
     useAuthStore.getState().refreshEntitlement()
   },
@@ -819,6 +846,25 @@ function isGenerationActive(generation: GenerationState): boolean {
   if (generation.isRunning) return true
   const summary = generation.summary
   return !!summary && (summary.processing > 0 || summary.pending > 0)
+}
+
+/**
+ * Single source of truth for "why can't I generate yet" — used both to
+ * decide whether clicking Gerar Vídeos opens the confirm modal or the
+ * missing-requirements explainer, and to render that explainer's list.
+ */
+export function getMissingGenerateRequirements(
+  state: Pick<AppState, 'hooks' | 'bodies' | 'ctas' | 'outputFolder' | 'previewApproved'>
+): string[] {
+  const missing: string[] = []
+  if (state.hooks.length === 0) missing.push('Adicione pelo menos um vídeo de Gancho.')
+  if (state.bodies.length === 0) missing.push('Adicione pelo menos um vídeo de Corpo.')
+  if (state.ctas.length === 0) missing.push('Adicione pelo menos um vídeo de CTA.')
+  if (!state.outputFolder) missing.push('Escolha uma pasta para salvar os vídeos.')
+  if (missing.length === 0 && !state.previewApproved) {
+    missing.push('Aperte em "Visualizar Combinação" no Preview e aprove o modelo antes de gerar os vídeos.')
+  }
+  return missing
 }
 
 function categoryKey(category: VideoCategory): 'hooks' | 'bodies' | 'ctas' {

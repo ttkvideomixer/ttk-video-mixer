@@ -19,6 +19,7 @@ import ConfirmGenerateModal from './components/ConfirmGenerateModal'
 import ConfirmClearCategoryModal from './components/ConfirmClearCategoryModal'
 import ConfirmCancelModal from './components/ConfirmCancelModal'
 import ConfirmNewSeedModal from './components/ConfirmNewSeedModal'
+import MissingRequirementsModal from './components/MissingRequirementsModal'
 import CompletionModal from './components/CompletionModal'
 import GenerationBusyModal from './components/GenerationBusyModal'
 import ProgressScreen from './components/ProgressScreen'
@@ -119,6 +120,7 @@ function App(): JSX.Element {
       {activeModal === 'confirmNewSeed' && <ConfirmNewSeedModal />}
       {activeModal === 'completion' && <CompletionModal />}
       {activeModal === 'generationBusy' && <GenerationBusyModal />}
+      {activeModal === 'missingRequirements' && <MissingRequirementsModal />}
       {activeModal === 'paywall' && <PaywallModal />}
       {activeModal === 'account' && <AccountScreen />}
     </div>

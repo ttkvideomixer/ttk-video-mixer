@@ -17,7 +17,7 @@ type DragMode = 'move' | 'width' | 'scale'
 const FONT_SIZE_RATIO_OF_HEIGHT = 0.09
 const MIN_MAX_WIDTH = 0.15
 const MAX_MAX_WIDTH = 1
-const MIN_SCALE = 0.4
+const MIN_SCALE = 0.15
 const MAX_SCALE = 2.5
 
 /** Mirrors exactly what the ffmpeg pipeline does (see filterGraph.ts resolveTextFit / buildDrawTextStage). */

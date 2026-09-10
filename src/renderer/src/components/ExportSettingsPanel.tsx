@@ -4,10 +4,11 @@ import { RESOLUTION_LABELS } from '@shared/resolutions'
 
 const RESOLUTION_OPTIONS: ResolutionPreset[] = [
   '1080x1920',
-  '720x1280',
   '1080x1350',
   '1080x1080',
   '1920x1080',
+  '1440x1080',
+  '1080x1620',
   'original'
 ]
 

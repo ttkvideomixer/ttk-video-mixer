@@ -36,7 +36,6 @@ function PreviewWorkspace(): JSX.Element {
   const visualCtaEnabled = useAppStore((s) => s.visualCta.enabled)
   const previewExampleVariation = useAppStore((s) => s.previewExampleVariation)
   const previewExampleCtaPhrase = useAppStore((s) => s.previewExampleCtaPhrase)
-  const rollNewExampleVariation = useAppStore((s) => s.rollNewExampleVariation)
   const approvePreview = useAppStore((s) => s.approvePreview)
   const previewApproved = useAppStore((s) => s.previewApproved)
   const resolution = useAppStore((s) => s.exportSettings.resolution)
@@ -109,15 +108,12 @@ function PreviewWorkspace(): JSX.Element {
         <button
           disabled={testPreviewLoading}
           onClick={runTestPreview}
-          className="rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
         >
+          {testPreviewLoading && (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+          )}
           {testPreviewLoading ? 'Gerando prévia...' : 'Visualizar Combinação'}
-        </button>
-        <button
-          onClick={() => rollNewExampleVariation()}
-          className="rounded-lg border border-bg-border px-4 py-2 text-xs font-semibold text-gray-300 hover:bg-bg-soft"
-        >
-          Nova Variação
         </button>
         <button
           disabled={testPreviewLoading}
@@ -241,7 +237,12 @@ function Timeline({
   }
 
   const startScrub = (e: React.PointerEvent<HTMLDivElement>): void => {
-    (e.target as Element).setPointerCapture(e.pointerId)
+    // Capture on currentTarget (the track itself), not target — target can
+    // be an inner segment bar, and losing capture mid-drag is what made the
+    // scrubber snap back to 0 once a click landed on one of those bars
+    // (hook-text / CTA rows only render when those features are enabled,
+    // which is exactly when this misfired).
+    e.currentTarget.setPointerCapture(e.pointerId)
     seekFromEvent(e)
   }
 

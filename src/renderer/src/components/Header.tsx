@@ -3,6 +3,7 @@ import { useAuthStore } from '../state/useAuthStore'
 
 function Header(): JSX.Element {
   const openAccount = useAppStore((s) => s.openAccount)
+  const lastGeneratedFolder = useAppStore((s) => s.lastGeneratedFolder)
   const user = useAuthStore((s) => s.user)
   const entitlement = useAuthStore((s) => s.entitlement)
 
@@ -18,7 +19,17 @@ function Header(): JSX.Element {
 
   return (
     <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-bg-border bg-bg-card px-8 py-5">
-      <div />
+      <div>
+        {lastGeneratedFolder && (
+          <button
+            onClick={() => window.api.openPath(lastGeneratedFolder)}
+            title={lastGeneratedFolder}
+            className="flex items-center gap-2 rounded-full border border-bg-border bg-bg-soft px-3 py-1.5 text-xs text-gray-300 hover:bg-bg-border"
+          >
+            Ver Vídeos Gerados
+          </button>
+        )}
+      </div>
       <div className="flex flex-col items-center gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-white">
           TTK VIDEO <span className="text-brand-light">MIXER</span>
