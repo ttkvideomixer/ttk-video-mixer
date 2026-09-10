@@ -30,7 +30,6 @@ export const IpcChannels = {
   cancelGeneration: 'generation:cancel',
   retryErrors: 'generation:retry-errors',
   previewCombination: 'generation:preview-combination',
-  generateSingle: 'generation:single',
 
   // Events pushed from main -> renderer
   onJobUpdated: 'event:job-updated',

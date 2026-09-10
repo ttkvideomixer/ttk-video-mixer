@@ -56,9 +56,6 @@ const api = {
   previewCombination: (input: RenderJobInput): Promise<string> =>
     ipcRenderer.invoke(IpcChannels.previewCombination, input),
 
-  generateSingle: (input: RenderJobInput & { outputFolder: string; fileName: string; deviceId: string | null }): Promise<string> =>
-    ipcRenderer.invoke(IpcChannels.generateSingle, input),
-
   onJobUpdated: (callback: (job: GenerationJob) => void) => subscribe(IpcChannels.onJobUpdated, callback),
   onGenerationSummary: (callback: (summary: GenerationSummary) => void) =>
     subscribe(IpcChannels.onGenerationSummary, callback),

@@ -224,42 +224,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return outputPath
   })
 
-  ipcMain.handle(
-    IpcChannels.generateSingle,
-    async (_event, input: RenderJobInput & { outputFolder: string; fileName: string; deviceId: string | null }) => {
-      // "Gerar Apenas Este Vídeo" produces a real final file, so it costs
-      // one generation the same as any batch item — only the live Preview
-      // clip (previewCombination, above) is free.
-      let authorization
-      try {
-        authorization = await authorizeGeneration({
-          requestedOutputs: 1,
-          combinationHash: createHash('sha256').update(input.fileName).digest('hex'),
-          deviceId: input.deviceId
-        })
-      } catch (err) {
-        const code = err instanceof HttpFunctionError ? err.code : 'SERVER_ERROR'
-        throw new Error(code)
-      }
-
-      if (!authorization.allowed) {
-        throw new Error(authorization.reason ?? 'SUBSCRIPTION_REQUIRED')
-      }
-
-      const outputPath = join(input.outputFolder, input.fileName)
-      const handle = processJob({ ...input, outputPath, videoMixerId: 'VM-SINGLE' })
-
-      try {
-        await handle.promise
-        if (authorization.reservationId) await completeGeneration(authorization.reservationId, 1, 0)
-      } catch (err) {
-        if (authorization.reservationId) await completeGeneration(authorization.reservationId, 0, 1)
-        throw err
-      }
-
-      return outputPath
-    }
-  )
 }
 
 export function getProjectPathForId(id: string): string {

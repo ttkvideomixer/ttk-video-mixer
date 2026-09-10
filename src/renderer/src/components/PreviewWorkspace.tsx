@@ -25,7 +25,6 @@ function PreviewWorkspace(): JSX.Element {
   const testSelection = useAppStore((s) => s.testSelection)
   const setTestSelection = useAppStore((s) => s.setTestSelection)
   const runTestPreview = useAppStore((s) => s.runTestPreview)
-  const generateSingleFromTest = useAppStore((s) => s.generateSingleFromTest)
   const testPreviewPath = useAppStore((s) => s.testPreviewPath)
   const testPreviewLoading = useAppStore((s) => s.testPreviewLoading)
   const testPreviewError = useAppStore((s) => s.testPreviewError)
@@ -114,13 +113,6 @@ function PreviewWorkspace(): JSX.Element {
             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
           )}
           {testPreviewLoading ? 'Gerando prévia...' : 'Visualizar Combinação'}
-        </button>
-        <button
-          disabled={testPreviewLoading}
-          onClick={generateSingleFromTest}
-          className="rounded-lg border border-bg-border px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-300 hover:bg-bg-soft disabled:opacity-50"
-        >
-          Gerar Apenas Este Vídeo
         </button>
         <label className="ml-auto flex items-center gap-2 text-xs text-gray-400">
           <input
@@ -271,20 +263,38 @@ function Timeline({
         </TimelineRow>
 
         <TimelineRow label="Texto do Gancho">
-          <div className="h-3 w-full rounded bg-bg-soft">
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSeek(0)
+            }}
+            title="Ir para o início do texto de gancho"
+            className="h-3 w-full cursor-pointer rounded bg-bg-soft"
+          >
             {hasHookText && <div style={{ width: `${hookFraction * 100}%` }} className="h-full rounded bg-brand-light" />}
-          </div>
+          </button>
         </TimelineRow>
 
         <TimelineRow label="CTA Visual">
-          <div className="h-3 w-full rounded bg-bg-soft">
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSeek(hookFraction + bodyFraction)
+            }}
+            title="Ir para o início do CTA visual"
+            className="h-3 w-full cursor-pointer rounded bg-bg-soft"
+          >
             {hasVisualCta && (
               <div
                 style={{ width: `${ctaFraction * 100}%`, marginLeft: `${(hookFraction + bodyFraction) * 100}%` }}
                 className="h-full rounded bg-success"
               />
             )}
-          </div>
+          </button>
         </TimelineRow>
       </div>
     </div>

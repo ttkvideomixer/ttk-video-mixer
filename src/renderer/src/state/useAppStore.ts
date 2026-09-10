@@ -33,12 +33,10 @@ import {
 } from '@shared/defaults'
 import { naturalSortBy } from '@shared/naturalSort'
 import { buildGenerationJobs } from '@shared/jobBuilder'
-import { buildOutputFileName } from '@shared/naming'
 import { joinWindowsPath } from '@shared/pathUtils'
 import { sanitizeFileNamePart } from '@shared/sanitize'
 import { computePreviewConfigurationHash, type RenderAffectingConfig } from '@shared/previewConfig'
 import { buildVariationSequence } from '@shared/variationParams'
-import { extractBillingErrorCode } from '@shared/billing'
 import { distributeCtaPhrases } from '@shared/ctaPhrases'
 
 function toVideoFile(descriptor: ImportedVideoDescriptor, category: VideoCategory, order: number): VideoFile {
@@ -189,7 +187,6 @@ interface AppState {
 
   setTestSelection: (partial: Partial<AppState['testSelection']>) => void
   runTestPreview: () => Promise<void>
-  generateSingleFromTest: () => Promise<void>
   approvePreview: () => void
   toggleLogPanel: () => void
 
@@ -532,77 +529,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         testPreviewError: error instanceof Error ? error.message : 'Falha ao gerar previa.',
         testPreviewLoading: false
       })
-    }
-  },
-
-  generateSingleFromTest: async () => {
-    if (isGenerationActive(get().generation)) {
-      set({ activeModal: 'generationBusy' })
-      return
-    }
-    const {
-      hooks,
-      bodies,
-      ctas,
-      testSelection,
-      exportSettings,
-      prefix,
-      overlays,
-      silenceTrim,
-      hookTexts,
-      previewExampleVariation,
-      previewExampleCtaPhrase
-    } = get()
-    const outputFolder = get().computeOutputFolderPath()
-    const hook = hooks.find((h) => h.id === testSelection.hookId)
-    const body = bodies.find((b) => b.id === testSelection.bodyId)
-    const cta = ctas.find((c) => c.id === testSelection.ctaId)
-    if (!hook || !body || !cta || !outputFolder) {
-      set({ testPreviewError: 'Selecione gancho, corpo, CTA e a pasta de destino.' })
-      return
-    }
-    const hookIndex = hooks.findIndex((h) => h.id === hook.id)
-    const bodyIndex = bodies.findIndex((b) => b.id === body.id)
-    const ctaIndex = ctas.findIndex((c) => c.id === cta.id)
-    const fileName = buildOutputFileName({
-      prefix,
-      hookIndex,
-      bodyIndex,
-      ctaIndex,
-      hookCount: hooks.length,
-      bodyCount: bodies.length,
-      ctaCount: ctas.length
-    })
-    set({ testPreviewLoading: true, testPreviewError: null })
-    try {
-      const enabledTexts = hookTexts.filter((t) => t.enabled && t.text.trim().length > 0)
-      const deviceId = useAuthStore.getState().deviceId
-      await window.api.generateSingle({
-        hookPath: hook.path,
-        bodyPath: body.path,
-        ctaPath: cta.path,
-        outputFolder,
-        fileName,
-        settings: exportSettings,
-        overlays,
-        silenceTrimEnabled: silenceTrim.enabled,
-        hookTextContent: enabledTexts[0]?.text ?? null,
-        visualCtaPhrase: previewExampleCtaPhrase,
-        variation: previewExampleVariation,
-        deviceId
-      })
-      set({ testPreviewLoading: false, lastGeneratedFolder: outputFolder })
-      window.api.setPreferences({ lastGeneratedFolder: outputFolder })
-      useAuthStore.getState().refreshEntitlement()
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      const billingCode = extractBillingErrorCode(message)
-      if (billingCode) {
-        set({ testPreviewLoading: false, activeModal: 'paywall', paywallReason: billingCode })
-        useAuthStore.getState().refreshEntitlement()
-        return
-      }
-      set({ testPreviewError: message, testPreviewLoading: false })
     }
   },
 
