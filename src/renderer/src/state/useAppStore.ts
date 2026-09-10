@@ -5,6 +5,7 @@ import type {
   CreativeVariationSettings,
   ExportSettings,
   FfmpegStatus,
+  FrameSettings,
   GenerationJob,
   GenerationSummary,
   HookText,
@@ -24,10 +25,12 @@ import {
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
+  DEFAULT_FRAME_SETTINGS,
   DEFAULT_OVERLAYS_STATE,
   DEFAULT_PREFIX,
   DEFAULT_SILENCE_TRIM_SETTINGS,
   DEFAULT_VISUAL_CTA_SETTINGS,
+  FRAME_ELIGIBLE_RESOLUTION,
   NEUTRAL_VARIATION_PARAMETERS,
   PROJECT_SCHEMA_VERSION
 } from '@shared/defaults'
@@ -113,6 +116,9 @@ interface AppState {
   outputFolder: string | null
   /** Where the most recent generation actually wrote videos — survives "Novo Projeto" and app restarts, unlike generation.outputFolderUsed. */
   lastGeneratedFolder: string | null
+  frameSettings: FrameSettings
+  /** Re-scanned from frameSettings.folderPath whenever it's set — not persisted, always fresh. */
+  frameFilePaths: string[]
   createSubfolderPerProject: boolean
   prefix: string
   exportSettings: ExportSettings
@@ -158,6 +164,9 @@ interface AppState {
   requestClearCategory: (category: VideoCategory) => void
   confirmClearCategory: () => void
   setOutputFolder: () => Promise<void>
+  chooseFrameFolder: () => Promise<void>
+  setFramesEnabled: (enabled: boolean) => void
+  clearFrameFolder: () => void
   setCreateSubfolderPerProject: (value: boolean) => void
   setPrefix: (value: string) => void
   setProjectName: (value: string) => void
@@ -232,6 +241,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   ctas: [],
   outputFolder: null,
   lastGeneratedFolder: null,
+  frameSettings: DEFAULT_FRAME_SETTINGS,
+  frameFilePaths: [],
   createSubfolderPerProject: true,
   prefix: DEFAULT_PREFIX,
   exportSettings: DEFAULT_EXPORT_SETTINGS,
@@ -277,9 +288,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       exportSettings: preferences.lastExportSettings,
       outputFolder: preferences.lastOutputFolder,
       lastGeneratedFolder: preferences.lastGeneratedFolder,
+      frameSettings: { ...get().frameSettings, folderPath: preferences.lastFrameFolder },
       prefix: preferences.lastPrefix,
       createSubfolderPerProject: preferences.createSubfolderPerProject
     })
+
+    if (preferences.lastFrameFolder) {
+      window.api.listFrameFiles(preferences.lastFrameFolder).then((filePaths) => set({ frameFilePaths: filePaths }))
+    }
 
     window.__vmUnsubscribeGenerationEvents?.()
 
@@ -364,6 +380,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ outputFolder: folder })
       window.api.setPreferences({ lastOutputFolder: folder })
     }
+  },
+
+  chooseFrameFolder: async () => {
+    const result = await window.api.selectFramesFolder()
+    if (result) {
+      set((state) => ({
+        frameSettings: { ...state.frameSettings, folderPath: result.folderPath },
+        frameFilePaths: result.filePaths
+      }))
+      window.api.setPreferences({ lastFrameFolder: result.folderPath })
+    }
+  },
+
+  setFramesEnabled: (enabled) => {
+    set((state) => ({ frameSettings: { ...state.frameSettings, enabled } }))
+  },
+
+  clearFrameFolder: () => {
+    set({ frameSettings: { enabled: false, folderPath: null }, frameFilePaths: [] })
+    window.api.setPreferences({ lastFrameFolder: null })
   },
 
   setCreateSubfolderPerProject: (value) => {
@@ -521,6 +557,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         silenceTrimEnabled: silenceTrim.enabled,
         hookTextContent: null,
         visualCtaPhrase: null,
+        framePath: null,
         variation: rolledVariation
       })
       set({ testPreviewPath: path, testPreviewLoading: false, previewExampleCtaPhrase: ctaPhrase })
@@ -567,8 +604,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ activeModal: 'generationBusy' })
       return
     }
-    const { hooks, bodies, ctas, prefix, combinationSettings, exportSettings, hookTexts, visualCta, creativeVariation, projectSeed } =
-      state
+    const {
+      hooks,
+      bodies,
+      ctas,
+      prefix,
+      combinationSettings,
+      exportSettings,
+      hookTexts,
+      visualCta,
+      creativeVariation,
+      projectSeed,
+      frameSettings
+    } = state
     const outputFolder = get().computeOutputFolderPath()
     if (!outputFolder) return
 
@@ -577,6 +625,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ previewApproved: false, activeModal: null })
       return
     }
+
+    const framesEligible = frameSettings.enabled && exportSettings.resolution === FRAME_ELIGIBLE_RESOLUTION
+    const frameFilePaths =
+      framesEligible && frameSettings.folderPath ? await window.api.listFrameFiles(frameSettings.folderPath) : []
+    if (framesEligible) set({ frameFilePaths })
 
     const jobs = buildGenerationJobs({
       hooks,
@@ -588,7 +641,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       hookTexts,
       visualCtaEnabled: visualCta.enabled,
       creativeVariation,
-      projectSeed
+      projectSeed,
+      frameFilePaths
     })
 
     set({ activeModal: null })
@@ -728,6 +782,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       overlays: state.overlays,
       projectSeed: state.projectSeed,
       preview: { approved: state.previewApproved, configurationHash: state.previewConfigurationHash },
+      frameSettings: state.frameSettings,
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
@@ -761,10 +816,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       projectSeed: project.projectSeed,
       previewApproved: project.preview.approved,
       previewConfigurationHash: project.preview.configurationHash,
+      frameSettings: project.frameSettings,
+      frameFilePaths: [],
       generation: emptyGeneration,
       currentView: 'home',
       activeModal: null
     })
+    if (project.frameSettings.folderPath) {
+      window.api.listFrameFiles(project.frameSettings.folderPath).then((filePaths) => set({ frameFilePaths: filePaths }))
+    }
   }
 }))
 

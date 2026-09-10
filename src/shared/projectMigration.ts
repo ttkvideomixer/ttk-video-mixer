@@ -3,6 +3,7 @@ import {
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
+  DEFAULT_FRAME_SETTINGS,
   DEFAULT_OVERLAYS_STATE,
   DEFAULT_PREVIEW_STATE,
   DEFAULT_SILENCE_TRIM_SETTINGS,
@@ -45,6 +46,7 @@ export function migrateProject(raw: Record<string, unknown>): Project {
     },
     projectSeed: p.projectSeed ?? Date.now(),
     preview: { ...DEFAULT_PREVIEW_STATE, ...p.preview },
+    frameSettings: { ...DEFAULT_FRAME_SETTINGS, ...p.frameSettings },
     createdAt: p.createdAt ?? Date.now(),
     updatedAt: p.updatedAt ?? Date.now()
   }

@@ -51,6 +51,17 @@ export interface CombinationSelectionSettings {
   multiplyByHookText: boolean
 }
 
+/**
+ * "Molduras" — decorative PNG frames (transparent center) overlaid on top
+ * of the full finished video, one per output, randomly assigned from the
+ * chosen folder. Only meaningful for the 9:16 vertical resolution preset
+ * (1080x1920) — the frames are designed for that aspect ratio.
+ */
+export interface FrameSettings {
+  enabled: boolean
+  folderPath: string | null
+}
+
 export type JobStatus = 'pending' | 'processing' | 'done' | 'error' | 'skipped' | 'canceled'
 
 export interface Combination {
@@ -150,6 +161,7 @@ export interface GenerationJob {
   hookTextId: string | null
   hookTextContent: string | null
   visualCtaPhrase: string | null
+  framePath: string | null
   variation: VariationParameters
   variationSignature: string
   sha256: string | null
@@ -185,6 +197,7 @@ export interface Project {
   overlays: PreviewOverlaysState
   projectSeed: number
   preview: PreviewState
+  frameSettings: FrameSettings
   createdAt: number
   updatedAt: number
 }
@@ -216,6 +229,7 @@ export interface RenderJobInput {
   settings: ExportSettings
   hookTextContent: string | null
   visualCtaPhrase: string | null
+  framePath: string | null
   variation: VariationParameters
   overlays: PreviewOverlaysState
   silenceTrimEnabled: boolean
@@ -263,6 +277,7 @@ export interface PreferencesSchema {
   recentProjects: RecentProjectEntry[]
   /** Folder the most recent successful generation (batch or single) wrote videos to — survives new projects and app restarts. */
   lastGeneratedFolder: string | null
+  lastFrameFolder: string | null
 }
 
 export interface ImportedVideoDescriptor {

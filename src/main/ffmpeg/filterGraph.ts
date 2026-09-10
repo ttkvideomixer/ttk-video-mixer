@@ -31,6 +31,8 @@ export interface RenderExtras {
   hookText: ResolvedTextOverlay | null
   visualCta: ResolvedTextOverlay | null
   fontFilePath: string
+  /** Moldura: absolute path to a transparent-center PNG overlaid on top of the WHOLE finished video (all 3 segments), full duration. */
+  frameOverlayPath: string | null
 }
 
 export interface FilterGraphResult {
@@ -45,7 +47,8 @@ const NO_EXTRAS: RenderExtras = {
   variation: NEUTRAL_VARIATION_PARAMETERS,
   hookText: null,
   visualCta: null,
-  fontFilePath: ''
+  fontFilePath: '',
+  frameOverlayPath: null
 }
 
 export function resolveTargetSize(settings: ExportSettings, segments: SegmentInfo[]): { width: number; height: number } {
@@ -225,23 +228,62 @@ export function buildFilterGraph(
     audioLabels.push(aLabel)
   })
 
+  let result: FilterGraphResult
   if (settings.transition === 'crossfade') {
-    return buildCrossfadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation)
+    result = buildCrossfadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation)
+  } else if (settings.transition === 'fade') {
+    result = buildFadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation)
+  } else {
+    filterLines.push(
+      `[${videoLabels[0]}][${audioLabels[0]}][${videoLabels[1]}][${audioLabels[1]}][${videoLabels[2]}][${audioLabels[2]}]concat=n=3:v=1:a=1[outv][outa]`
+    )
+    result = {
+      extraInputArgs,
+      filterComplex: filterLines.join(';'),
+      videoOutputLabel: 'outv',
+      audioOutputLabel: 'outa'
+    }
   }
 
-  if (settings.transition === 'fade') {
-    return buildFadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation)
+  if (extras.frameOverlayPath) {
+    // Upper bound on total output duration (exact for cut/concat; a safe
+    // overestimate for fade/crossfade, which trim a little at the joins) —
+    // only used to give the looped still image a finite length, never to
+    // trim the actual output.
+    const maxDuration = segments.reduce((sum, s) => sum + computeEffectiveDuration(s, variation), 0)
+    result = applyFrameOverlay(result, extras.frameOverlayPath, width, height, nextInputIndex, maxDuration)
   }
 
-  filterLines.push(
-    `[${videoLabels[0]}][${audioLabels[0]}][${videoLabels[1]}][${audioLabels[1]}][${videoLabels[2]}][${audioLabels[2]}]concat=n=3:v=1:a=1[outv][outa]`
-  )
+  return result
+}
+
+/**
+ * Overlays a transparent-center PNG on top of the fully concatenated video
+ * for its entire duration. The image is its own ffmpeg input with `-loop 1`
+ * (an infinite still-image "video" source) — WITHOUT an explicit `-t`, that
+ * input never reaches EOF on its own, and ffmpeg hangs encoding forever
+ * instead of stopping when the (finite) main video ends. Bounding it to
+ * `maxDuration` (>= the real output length) fixes that while never being
+ * the one to cut the output short — the main input still governs.
+ */
+function applyFrameOverlay(
+  result: FilterGraphResult,
+  framePath: string,
+  width: number,
+  height: number,
+  frameInputIndex: number,
+  maxDuration: number
+): FilterGraphResult {
+  const scaledLabel = 'frameov'
+  const outLabel = 'outv_framed'
+  const frameChain = `[${frameInputIndex}:v]format=rgba,scale=${width}:${height}[${scaledLabel}]`
+  const overlayLine = `[${result.videoOutputLabel}][${scaledLabel}]overlay=0:0[${outLabel}]`
 
   return {
-    extraInputArgs,
-    filterComplex: filterLines.join(';'),
-    videoOutputLabel: 'outv',
-    audioOutputLabel: 'outa'
+    extraInputArgs: [...result.extraInputArgs, '-loop', '1', '-t', maxDuration.toFixed(3), '-i', framePath],
+    filterComplex: `${result.filterComplex};${frameChain};${overlayLine}`,
+    videoOutputLabel: outLabel,
+    audioOutputLabel: result.audioOutputLabel
   }
 }
 

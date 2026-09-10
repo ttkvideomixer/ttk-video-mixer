@@ -18,6 +18,8 @@ export interface BuildJobsParams {
   visualCtaEnabled: boolean
   creativeVariation: CreativeVariationSettings
   projectSeed: number
+  /** Molduras: pass a non-empty list only when the feature is enabled AND the export resolution is frame-eligible (9:16) — see FRAME_ELIGIBLE_RESOLUTION. */
+  frameFilePaths: string[]
 }
 
 interface ExpandedEntry {
@@ -46,7 +48,8 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
     hookTexts,
     visualCtaEnabled,
     creativeVariation,
-    projectSeed
+    projectSeed,
+    frameFilePaths
   } = params
 
   const all = generateCombinations(hooks.length, bodies.length, ctas.length)
@@ -82,6 +85,7 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       : null
 
   const distributedCtaPhrases = visualCtaEnabled ? distributeCtaPhrases(total, projectSeed + 2003) : null
+  const distributedFramePaths = frameFilePaths.length > 0 ? distributeEvenly(frameFilePaths, total, projectSeed + 4007) : null
   const variationSequence = buildVariationSequence(creativeVariation, total, projectSeed + 3001)
 
   const jobs = selected.map((entry, i) => {
@@ -92,6 +96,7 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
     const textIndex = multiply ? entry.hookTextIndex : (distributedTextIndexes?.[i] ?? null)
     const hookText = textIndex !== null && textIndex !== undefined ? enabledHookTexts[textIndex] : null
     const visualCtaPhrase = distributedCtaPhrases ? distributedCtaPhrases[i] : null
+    const framePath = distributedFramePaths ? distributedFramePaths[i] : null
 
     const outputFileName = buildOutputFileName({
       prefix,
@@ -122,6 +127,7 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       cta.id,
       hookText ? hookText.id : 'HT0',
       ctaPhraseId >= 0 ? `VC${ctaPhraseId}` : 'VC0',
+      framePath ?? 'FR0',
       buildVariationSignature(variation)
     ].join('|')
 
@@ -150,6 +156,7 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       hookTextId: hookText ? hookText.id : null,
       hookTextContent: hookText ? hookText.text : null,
       visualCtaPhrase,
+      framePath,
       variation,
       variationSignature,
       sha256: null,

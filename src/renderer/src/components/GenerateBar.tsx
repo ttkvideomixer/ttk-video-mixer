@@ -45,7 +45,8 @@ function GenerateBar(): JSX.Element {
       hookTexts,
       visualCtaEnabled: visualCta.enabled,
       creativeVariation,
-      projectSeed
+      projectSeed,
+      frameFilePaths: []
     })
     await window.api.exportCombinationsCsv(jobs)
   }

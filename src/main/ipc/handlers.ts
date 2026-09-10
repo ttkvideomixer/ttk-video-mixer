@@ -20,6 +20,7 @@ import { probeVideoFile } from '../ffmpeg/probe'
 import { generateThumbnailDataUrl } from '../ffmpeg/thumbnail'
 import { processJob } from '../ffmpeg/videoProcessor'
 import { listVideoFilesInFolder } from '../utils/videoImport'
+import { listFrameFilesInFolder } from '../utils/frameImport'
 import { getDiskSpaceInfo } from '../utils/diskSpace'
 import { buildCombinationsCsv } from '../utils/csv'
 import { getPreferences, setPreferences } from '../store/preferences'
@@ -102,6 +103,25 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     })
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
+  })
+
+  ipcMain.handle(
+    IpcChannels.selectFramesFolder,
+    async (): Promise<{ folderPath: string; filePaths: string[] } | null> => {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Selecionar pasta de molduras',
+        properties: ['openDirectory']
+      })
+      if (result.canceled || result.filePaths.length === 0) return null
+      const folderPath = result.filePaths[0]
+      const filePaths = await listFrameFilesInFolder(folderPath)
+      return { folderPath, filePaths }
+    }
+  )
+
+  ipcMain.handle(IpcChannels.listFrameFiles, async (_event, folderPath: string): Promise<string[]> => {
+    if (!existsSync(folderPath)) return []
+    return listFrameFilesInFolder(folderPath)
   })
 
   ipcMain.handle(IpcChannels.openPath, async (_event, targetPath: string) => {

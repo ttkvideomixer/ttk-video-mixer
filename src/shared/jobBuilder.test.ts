@@ -31,7 +31,8 @@ function baseParams(): BuildJobsParams {
     hookTexts: [],
     visualCtaEnabled: false,
     creativeVariation: { ...DEFAULT_CREATIVE_VARIATION_SETTINGS, enabled: false },
-    projectSeed: 42
+    projectSeed: 42,
+    frameFilePaths: []
   }
 }
 
@@ -98,6 +99,24 @@ describe('buildGenerationJobs', () => {
 
     const disabled = buildGenerationJobs(baseParams())
     expect(disabled.every((j) => j.visualCtaPhrase === null)).toBe(true)
+  })
+
+  it('assigns a frame to every job only when frameFilePaths is provided', () => {
+    const frames = ['C:\\molduras\\a.png', 'C:\\molduras\\b.png', 'C:\\molduras\\c.png']
+    const withFrames = buildGenerationJobs({ ...baseParams(), frameFilePaths: frames })
+    expect(withFrames.every((j) => j.framePath !== null && frames.includes(j.framePath))).toBe(true)
+
+    const withoutFrames = buildGenerationJobs(baseParams())
+    expect(withoutFrames.every((j) => j.framePath === null)).toBe(true)
+  })
+
+  it('uses every frame a near-equal number of times across the batch (cycles instead of picking with replacement)', () => {
+    const frames = ['C:\\molduras\\a.png', 'C:\\molduras\\b.png', 'C:\\molduras\\c.png']
+    const jobs = buildGenerationJobs({ ...baseParams(), frameFilePaths: frames })
+    expect(jobs.length).toBeGreaterThan(frames.length)
+
+    const counts = frames.map((f) => jobs.filter((j) => j.framePath === f).length)
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1)
   })
 
   it('gives every job a variation signature that is unique across the whole batch', () => {

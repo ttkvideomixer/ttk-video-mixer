@@ -4,6 +4,8 @@ export const IpcChannels = {
   importFolder: 'import:folder',
   describePaths: 'import:describe-paths',
   chooseOutputFolder: 'import:choose-output-folder',
+  selectFramesFolder: 'frames:select-folder',
+  listFrameFiles: 'frames:list-files',
   openPath: 'fs:open-path',
   showInFolder: 'fs:show-in-folder',
   getDiskSpace: 'fs:disk-space',

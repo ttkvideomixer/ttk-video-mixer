@@ -10,7 +10,8 @@ const store = new Store<PreferencesSchema>({
     lastPrefix: 'video',
     createSubfolderPerProject: true,
     recentProjects: [],
-    lastGeneratedFolder: null
+    lastGeneratedFolder: null,
+    lastFrameFolder: null
   }
 });
 
@@ -21,7 +22,8 @@ export function getPreferences(): PreferencesSchema {
     lastPrefix: store.get('lastPrefix'),
     createSubfolderPerProject: store.get('createSubfolderPerProject'),
     recentProjects: store.get('recentProjects'),
-    lastGeneratedFolder: store.get('lastGeneratedFolder')
+    lastGeneratedFolder: store.get('lastGeneratedFolder'),
+    lastFrameFolder: store.get('lastFrameFolder')
   }
 }
 

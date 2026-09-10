@@ -134,7 +134,8 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
       variation: input.variation,
       fontFilePath: input.hookTextContent || input.visualCtaPhrase ? getBundledFontPath() : '',
       hookText: await resolveOverlay(input.hookTextContent, input.overlays.hookText, width, height, tempFiles),
-      visualCta: await resolveOverlay(input.visualCtaPhrase, input.overlays.visualCta, width, height, tempFiles)
+      visualCta: await resolveOverlay(input.visualCtaPhrase, input.overlays.visualCta, width, height, tempFiles),
+      frameOverlayPath: input.framePath
     }
 
     const mainInputCount = 3

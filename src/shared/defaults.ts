@@ -2,6 +2,7 @@ import type {
   CombinationSelectionSettings,
   CreativeVariationSettings,
   ExportSettings,
+  FrameSettings,
   PreviewOverlaysState,
   PreviewState,
   SilenceTrimSettings,
@@ -87,11 +88,19 @@ export const DEFAULT_PREVIEW_STATE: PreviewState = {
   configurationHash: null
 }
 
+export const DEFAULT_FRAME_SETTINGS: FrameSettings = {
+  enabled: false,
+  folderPath: null
+}
+
 export const MAX_VARIATION_RETRY_ATTEMPTS = 5
 
 export const DEFAULT_PREFIX = 'video'
 
 export const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.mkv', '.webm', '.m4v', '.avi']
+export const SUPPORTED_FRAME_EXTENSIONS = ['.png']
+/** Only this resolution preset matches what the "molduras" PNGs are designed for. */
+export const FRAME_ELIGIBLE_RESOLUTION = '1080x1920'
 
 export const LARGE_PROJECT_WARNING_THRESHOLD = 500
 export const VERY_LARGE_PROJECT_WARNING_THRESHOLD = 2000

@@ -36,6 +36,7 @@ function makeJob(id: string, outputPath: string): GenerationJob {
     hookTextId: null,
     hookTextContent: null,
     visualCtaPhrase: null,
+    framePath: null,
     variation: { ...NEUTRAL_VARIATION_PARAMETERS },
     variationSignature: `sig-${id}`,
     sha256: null,
