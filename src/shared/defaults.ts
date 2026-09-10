@@ -89,8 +89,7 @@ export const DEFAULT_PREVIEW_STATE: PreviewState = {
 }
 
 export const DEFAULT_FRAME_SETTINGS: FrameSettings = {
-  enabled: false,
-  folderPath: null
+  enabled: false
 }
 
 export const MAX_VARIATION_RETRY_ATTEMPTS = 5

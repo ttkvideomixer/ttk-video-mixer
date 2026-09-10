@@ -1,5 +1,6 @@
 import { useAppStore } from '../state/useAppStore'
 import { countAvailableVariationSpace } from '@shared/variationParams'
+import { FRAME_ELIGIBLE_RESOLUTION } from '@shared/defaults'
 import { formatNumberPtBr } from '../utils/format'
 
 function CreativeVariationPanel(): JSX.Element {
@@ -9,8 +10,12 @@ function CreativeVariationPanel(): JSX.Element {
   const silenceTrim = useAppStore((s) => s.silenceTrim)
   const setSilenceTrimEnabled = useAppStore((s) => s.setSilenceTrimEnabled)
   const requestNewSeed = useAppStore((s) => s.requestNewSeed)
+  const frameSettings = useAppStore((s) => s.frameSettings)
+  const setFramesEnabled = useAppStore((s) => s.setFramesEnabled)
+  const resolution = useAppStore((s) => s.exportSettings.resolution)
 
   const availableSpace = countAvailableVariationSpace(creativeVariation)
+  const frameResolutionMismatch = frameSettings.enabled && resolution !== FRAME_ELIGIBLE_RESOLUTION
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-bg-border bg-bg-card p-5 shadow-card">
@@ -108,6 +113,28 @@ function CreativeVariationPanel(): JSX.Element {
         Ajustar pausas nas emendas
         <span className="text-gray-600">— remove pequenas pausas sem fala próximas ao início e ao final dos trechos.</span>
       </label>
+
+      <div className="border-t border-bg-border pt-3">
+        <label className="flex items-center gap-2 text-xs text-gray-400">
+          <input
+            type="checkbox"
+            checked={frameSettings.enabled}
+            onChange={(e) => setFramesEnabled(e.target.checked)}
+            className="h-4 w-4 accent-brand"
+          />
+          Aplicar molduras
+        </label>
+        <p className="mt-1.5 text-[11px] text-gray-600">
+          Sobrepõe uma moldura pronta (tema TikTok Shop/promoção) em cada vídeo, sorteada aleatoriamente — uma
+          diferente por vídeo, repetindo só depois de usar todas. Funciona apenas na resolução 9:16 (1080 × 1920).
+        </p>
+        {frameResolutionMismatch && (
+          <p className="mt-1.5 text-[11px] text-warning">
+            A resolução atual não é 9:16 — as molduras não serão aplicadas nesta geração até você trocar em
+            &ldquo;Configurações de Exportação&rdquo;.
+          </p>
+        )}
+      </div>
     </div>
   )
 }

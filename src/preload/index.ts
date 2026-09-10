@@ -31,9 +31,7 @@ const api = {
   describePaths: (paths: string[]): Promise<ImportedVideoDescriptor[]> =>
     ipcRenderer.invoke(IpcChannels.describePaths, paths),
   chooseOutputFolder: (): Promise<string | null> => ipcRenderer.invoke(IpcChannels.chooseOutputFolder),
-  selectFramesFolder: (): Promise<{ folderPath: string; filePaths: string[] } | null> =>
-    ipcRenderer.invoke(IpcChannels.selectFramesFolder),
-  listFrameFiles: (folderPath: string): Promise<string[]> => ipcRenderer.invoke(IpcChannels.listFrameFiles, folderPath),
+  listBundledFrames: (): Promise<string[]> => ipcRenderer.invoke(IpcChannels.listBundledFrames),
   openPath: (path: string): Promise<void> => ipcRenderer.invoke(IpcChannels.openPath, path),
   showInFolder: (path: string): Promise<void> => ipcRenderer.invoke(IpcChannels.showInFolder, path),
   getDiskSpace: (path: string): Promise<DiskSpaceInfo> => ipcRenderer.invoke(IpcChannels.getDiskSpace, path),

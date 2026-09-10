@@ -52,14 +52,13 @@ export interface CombinationSelectionSettings {
 }
 
 /**
- * "Molduras" — decorative PNG frames (transparent center) overlaid on top
- * of the full finished video, one per output, randomly assigned from the
- * chosen folder. Only meaningful for the 9:16 vertical resolution preset
- * (1080x1920) — the frames are designed for that aspect ratio.
+ * "Molduras" — decorative PNG frames (transparent center) bundled with the
+ * app and overlaid on top of the full finished video, one per output,
+ * randomly assigned. Only meaningful for the 9:16 vertical resolution
+ * preset (1080x1920) — the frames are designed for that aspect ratio.
  */
 export interface FrameSettings {
   enabled: boolean
-  folderPath: string | null
 }
 
 export type JobStatus = 'pending' | 'processing' | 'done' | 'error' | 'skipped' | 'canceled'
@@ -277,7 +276,6 @@ export interface PreferencesSchema {
   recentProjects: RecentProjectEntry[]
   /** Folder the most recent successful generation (batch or single) wrote videos to — survives new projects and app restarts. */
   lastGeneratedFolder: string | null
-  lastFrameFolder: string | null
 }
 
 export interface ImportedVideoDescriptor {

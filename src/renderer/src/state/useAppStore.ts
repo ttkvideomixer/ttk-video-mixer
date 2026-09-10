@@ -117,7 +117,7 @@ interface AppState {
   /** Where the most recent generation actually wrote videos — survives "Novo Projeto" and app restarts, unlike generation.outputFolderUsed. */
   lastGeneratedFolder: string | null
   frameSettings: FrameSettings
-  /** Re-scanned from frameSettings.folderPath whenever it's set — not persisted, always fresh. */
+  /** Bundled with the app (see main/utils/frameImport.ts) — loaded once at startup, same list for every project. */
   frameFilePaths: string[]
   createSubfolderPerProject: boolean
   prefix: string
@@ -164,9 +164,7 @@ interface AppState {
   requestClearCategory: (category: VideoCategory) => void
   confirmClearCategory: () => void
   setOutputFolder: () => Promise<void>
-  chooseFrameFolder: () => Promise<void>
   setFramesEnabled: (enabled: boolean) => void
-  clearFrameFolder: () => void
   setCreateSubfolderPerProject: (value: boolean) => void
   setPrefix: (value: string) => void
   setProjectName: (value: string) => void
@@ -288,14 +286,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       exportSettings: preferences.lastExportSettings,
       outputFolder: preferences.lastOutputFolder,
       lastGeneratedFolder: preferences.lastGeneratedFolder,
-      frameSettings: { ...get().frameSettings, folderPath: preferences.lastFrameFolder },
       prefix: preferences.lastPrefix,
       createSubfolderPerProject: preferences.createSubfolderPerProject
     })
 
-    if (preferences.lastFrameFolder) {
-      window.api.listFrameFiles(preferences.lastFrameFolder).then((filePaths) => set({ frameFilePaths: filePaths }))
-    }
+    window.api.listBundledFrames().then((filePaths) => set({ frameFilePaths: filePaths }))
 
     window.__vmUnsubscribeGenerationEvents?.()
 
@@ -382,24 +377,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  chooseFrameFolder: async () => {
-    const result = await window.api.selectFramesFolder()
-    if (result) {
-      set((state) => ({
-        frameSettings: { ...state.frameSettings, folderPath: result.folderPath },
-        frameFilePaths: result.filePaths
-      }))
-      window.api.setPreferences({ lastFrameFolder: result.folderPath })
-    }
-  },
-
   setFramesEnabled: (enabled) => {
     set((state) => ({ frameSettings: { ...state.frameSettings, enabled } }))
-  },
-
-  clearFrameFolder: () => {
-    set({ frameSettings: { enabled: false, folderPath: null }, frameFilePaths: [] })
-    window.api.setPreferences({ lastFrameFolder: null })
   },
 
   setCreateSubfolderPerProject: (value) => {
@@ -627,9 +606,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     const framesEligible = frameSettings.enabled && exportSettings.resolution === FRAME_ELIGIBLE_RESOLUTION
-    const frameFilePaths =
-      framesEligible && frameSettings.folderPath ? await window.api.listFrameFiles(frameSettings.folderPath) : []
-    if (framesEligible) set({ frameFilePaths })
+    const frameFilePaths = framesEligible ? await window.api.listBundledFrames() : []
 
     const jobs = buildGenerationJobs({
       hooks,
@@ -817,14 +794,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       previewApproved: project.preview.approved,
       previewConfigurationHash: project.preview.configurationHash,
       frameSettings: project.frameSettings,
-      frameFilePaths: [],
       generation: emptyGeneration,
       currentView: 'home',
       activeModal: null
     })
-    if (project.frameSettings.folderPath) {
-      window.api.listFrameFiles(project.frameSettings.folderPath).then((filePaths) => set({ frameFilePaths: filePaths }))
-    }
   }
 }))
 

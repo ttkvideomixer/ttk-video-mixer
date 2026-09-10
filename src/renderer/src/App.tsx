@@ -10,7 +10,6 @@ import VideoGroupCard from './components/VideoGroupCard'
 import CombinationCounter from './components/CombinationCounter'
 import OutputFolderPanel from './components/OutputFolderPanel'
 import ExportSettingsPanel from './components/ExportSettingsPanel'
-import FramesPanel from './components/FramesPanel'
 import CreativeVariationPanel from './components/CreativeVariationPanel'
 import PreviewWorkspace from './components/PreviewWorkspace'
 import GenerateBar from './components/GenerateBar'
@@ -104,8 +103,6 @@ function App(): JSX.Element {
             </div>
 
             <CreativeVariationPanel />
-
-            <FramesPanel />
 
             <PreviewWorkspace />
 
