@@ -39,7 +39,7 @@ export default function UpdateReadyBanner(): JSX.Element | null {
               window.api.restartAndUpdate()
             }}
             disabled={updating}
-            className="rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-md bg-gradient-to-r from-brand to-brand-dark px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             {updating ? 'Atualizando...' : 'Atualizar agora'}
           </button>
