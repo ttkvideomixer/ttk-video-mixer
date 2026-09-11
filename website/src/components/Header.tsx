@@ -61,8 +61,8 @@ export default function Header({ variant = 'full' }: HeaderProps): JSX.Element {
             </Link>
           ) : (
             <>
-              <Link href="/login" className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-200 hover:bg-bg-soft">
-                Entrar
+              <Link href="/download" className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-200 hover:bg-bg-soft">
+                Download
               </Link>
               <Link
                 href="/criar-conta"
@@ -101,8 +101,8 @@ export default function Header({ variant = 'full' }: HeaderProps): JSX.Element {
               </Link>
             ) : (
               <>
-                <Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-lg border border-bg-border px-4 py-2 text-center text-sm text-gray-200">
-                  Entrar
+                <Link href="/download" onClick={() => setMenuOpen(false)} className="rounded-lg border border-bg-border px-4 py-2 text-center text-sm text-gray-200">
+                  Download
                 </Link>
                 <Link href="/criar-conta" onClick={() => setMenuOpen(false)} className="rounded-lg bg-brand-gradient px-4 py-2 text-center text-sm font-bold text-white">
                   Começar Grátis
