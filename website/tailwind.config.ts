@@ -45,10 +45,21 @@ const config: Config = {
         'fade-up': {
           '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' }
+        },
+        'hype-pulse': {
+          '0%, 100%': {
+            transform: 'scale(1)',
+            boxShadow: '0 0 0px rgba(124,92,255,0), 0 0 18px rgba(139,92,246,0.35)'
+          },
+          '50%': {
+            transform: 'scale(1.04)',
+            boxShadow: '0 0 30px rgba(124,92,255,0.9), 0 0 55px rgba(139,92,246,0.6)'
+          }
         }
       },
       animation: {
-        'fade-up': 'fade-up 0.6s ease-out forwards'
+        'fade-up': 'fade-up 0.6s ease-out forwards',
+        'hype-pulse': 'hype-pulse 1.8s ease-in-out infinite'
       }
     }
   },

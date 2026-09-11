@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import MixerAnimation from './MixerAnimation'
+import HypeBadge from './HypeBadge'
 import { track } from '@/lib/analytics'
 
 export default function Hero(): JSX.Element {
@@ -9,6 +10,7 @@ export default function Hero(): JSX.Element {
     <section className="relative overflow-hidden bg-radial-fade px-5 pb-20 pt-16 md:pt-24">
       <div className="mx-auto grid max-w-6xl items-center gap-12 md:grid-cols-2">
         <div>
+          <HypeBadge className="mb-5" />
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-light">
             Criado para quem produz em escala
           </p>

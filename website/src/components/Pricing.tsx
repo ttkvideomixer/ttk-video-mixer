@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Reveal from './Reveal'
+import HypeBadge from './HypeBadge'
 
 const PERKS = [
   'Geração ilimitada',
@@ -16,6 +17,9 @@ export default function Pricing(): JSX.Element {
     <section id="preco" className="px-5 py-20">
       <div className="mx-auto max-w-md">
         <Reveal className="rounded-3xl border border-brand/50 bg-bg-card p-8 text-center shadow-glow">
+          <div className="flex justify-center">
+            <HypeBadge className="mb-4" />
+          </div>
           <p className="text-xs font-bold uppercase tracking-widest text-brand-light">TTK Video Mixer Pro</p>
           <p className="mt-3 text-5xl font-extrabold text-white">
             R$14,99<span className="text-lg font-medium text-gray-400">/mês</span>
