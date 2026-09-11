@@ -43,6 +43,7 @@ function PreviewWorkspace(): JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(true)
 
   const hook = hooks.find((h) => h.id === testSelection.hookId) ?? hooks[0] ?? null
   const body = bodies.find((b) => b.id === testSelection.bodyId) ?? bodies[0] ?? null
@@ -67,6 +68,7 @@ function PreviewWorkspace(): JSX.Element {
   }
 
   useEffect(() => {
+    setIsPlaying(true)
     videoRef.current?.play().catch(() => undefined)
   }, [testPreviewPath])
 
@@ -87,7 +89,36 @@ function PreviewWorkspace(): JSX.Element {
   const hookTextContent = hookTexts.find((t) => t.enabled && t.text.trim().length > 0)?.text ?? null
 
   const seekTo = (fraction: number): void => {
-    if (videoRef.current) videoRef.current.currentTime = fraction * effectiveDuration
+    if (!videoRef.current || effectiveDuration <= 0) return
+    // Never seek to the exact end: HTML5 video fires `ended` the instant
+    // currentTime reaches duration, which — combined with our manual loop
+    // below — used to snap the scrubber straight back to 0 the moment
+    // someone dragged it close to the end, making the last stretch of the
+    // video unreachable.
+    const clampedFraction = Math.min(Math.max(fraction, 0), 1)
+    const target = Math.min(clampedFraction * effectiveDuration, Math.max(0, effectiveDuration - 0.15))
+    videoRef.current.currentTime = target
+  }
+
+  const togglePlay = (): void => {
+    const video = videoRef.current
+    if (!video) return
+    if (video.paused) {
+      video.play().catch(() => undefined)
+      setIsPlaying(true)
+    } else {
+      video.pause()
+      setIsPlaying(false)
+    }
+  }
+
+  const handleEnded = (): void => {
+    // Replaces the native `loop` attribute so we control exactly when the
+    // restart happens, instead of Chromium's own loop firing mid-drag.
+    const video = videoRef.current
+    if (!video) return
+    video.currentTime = 0
+    video.play().catch(() => undefined)
   }
 
   return (
@@ -149,10 +180,10 @@ function PreviewWorkspace(): JSX.Element {
               ref={videoRef}
               key={testPreviewPath}
               src={toMediaUrl(testPreviewPath)}
-              controls
               autoPlay
-              loop
-              className="absolute inset-0 h-full w-full object-fill"
+              className="absolute inset-0 h-full w-full cursor-pointer object-fill"
+              onClick={togglePlay}
+              onEnded={handleEnded}
               onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
               onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
             />
@@ -180,6 +211,29 @@ function PreviewWorkspace(): JSX.Element {
                 accentColor="#22c55e"
               />
             )}
+          </div>
+
+          <div className="flex w-full max-w-[280px] items-center gap-2">
+            <button
+              type="button"
+              onClick={togglePlay}
+              title={isPlaying ? 'Pausar' : 'Reproduzir'}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bg-soft text-gray-200 hover:bg-bg-border"
+            >
+              {isPlaying ? (
+                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 fill-current">
+                  <rect x="3" y="2" width="3.5" height="12" />
+                  <rect x="9.5" y="2" width="3.5" height="12" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 fill-current">
+                  <path d="M4 2.5v11l10-5.5z" />
+                </svg>
+              )}
+            </button>
+            <span className="text-[11px] tabular-nums text-gray-500">
+              {formatDuration(currentTime)} / {formatDuration(effectiveDuration)}
+            </span>
           </div>
 
           <Timeline
