@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { CircleCheck, Download, Loader2 } from 'lucide-react'
 import { track } from '@/lib/analytics'
 import { getUtmParams } from '@/lib/utm'
 
@@ -44,11 +45,26 @@ export default function DownloadCard({ platform, title, subtitle, available, ver
         <>
           <button
             onClick={handleClick}
-            className="mt-5 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
+            className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
           >
-            {state === 'idle' && `Baixar para ${title}`}
-            {state === 'preparing' && 'Preparando download...'}
-            {state === 'started' && 'Download iniciado ✓'}
+            {state === 'idle' && (
+              <>
+                <Download className="h-4 w-4" />
+                {`Baixar para ${title}`}
+              </>
+            )}
+            {state === 'preparing' && (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Preparando download...
+              </>
+            )}
+            {state === 'started' && (
+              <>
+                <CircleCheck className="h-4 w-4" />
+                Download iniciado
+              </>
+            )}
           </button>
           <p className="mt-2 text-[11px] text-gray-500">
             {version ? `Versão ${version}` : 'Build local de desenvolvimento'}
