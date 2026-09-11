@@ -1,3 +1,4 @@
+import { ArrowRight, Download, Sparkles } from 'lucide-react'
 import { getMissingGenerateRequirements, useAppStore } from '../state/useAppStore'
 import { calculateTotalCombinations } from '@shared/combinations'
 import { buildGenerationJobs } from '@shared/jobBuilder'
@@ -69,7 +70,10 @@ function GenerateBar(): JSX.Element {
               </span>
             )}
           </span>
-          <span className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold uppercase text-black">Ver Andamento</span>
+          <span className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-bold uppercase text-black">
+            Ver Andamento
+            <ArrowRight className="h-3.5 w-3.5" />
+          </span>
         </button>
       )}
 
@@ -114,8 +118,9 @@ function GenerateBar(): JSX.Element {
         <button
           onClick={handleExportCsv}
           disabled={effectiveTotal === 0 || !outputFolder}
-          className="rounded-lg border border-bg-border px-3 py-2 text-xs text-gray-300 hover:bg-bg-soft disabled:opacity-40"
+          className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-2 text-xs text-gray-300 hover:bg-bg-soft disabled:opacity-40"
         >
+          <Download className="h-3.5 w-3.5" />
           Exportar Lista (CSV)
         </button>
       </div>
@@ -136,8 +141,9 @@ function GenerateBar(): JSX.Element {
       <div className="flex flex-col items-center gap-2 border-t border-bg-border pt-4">
         <button
           onClick={requestGenerate}
-          className="w-full max-w-md rounded-2xl bg-brand py-4 text-lg font-extrabold uppercase tracking-wide text-black shadow-card hover:bg-brand-dark"
+          className="flex w-full max-w-md items-center justify-center gap-2 rounded-2xl bg-tiktok-gradient py-4 text-lg font-extrabold uppercase tracking-wide text-black shadow-glow transition-all duration-150 hover:-translate-y-0.5 hover:opacity-90"
         >
+          <Sparkles className="h-5 w-5" />
           Gerar Vídeos
         </button>
         {missing.length > 0 && (

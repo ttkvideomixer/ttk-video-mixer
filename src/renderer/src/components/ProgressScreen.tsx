@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FixedSizeList } from 'react-window'
+import { ArrowLeft, FileText, Pause, Play, RotateCcw, X } from 'lucide-react'
 import { useAppStore } from '../state/useAppStore'
 import JobRow from './JobRow'
 import LogPanel from './LogPanel'
@@ -84,30 +85,54 @@ function ProgressScreen(): JSX.Element {
         )}
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <button onClick={goToHome} className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft">
+          <button
+            onClick={goToHome}
+            className="flex items-center gap-2 rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft"
+          >
+            <ArrowLeft className="h-4 w-4" />
             Voltar ao Início
           </button>
           {isActive && !generation.isPaused && (
-            <button onClick={pauseGeneration} className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft">
+            <button
+              onClick={pauseGeneration}
+              className="flex items-center gap-2 rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft"
+            >
+              <Pause className="h-4 w-4" />
               Pausar
             </button>
           )}
           {isActive && generation.isPaused && (
-            <button onClick={resumeGeneration} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark">
+            <button
+              onClick={resumeGeneration}
+              className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark"
+            >
+              <Play className="h-4 w-4" />
               Continuar
             </button>
           )}
           {isActive && (
-            <button onClick={requestCancelGeneration} className="rounded-lg border border-error px-4 py-2 text-sm text-error hover:bg-error/10">
+            <button
+              onClick={requestCancelGeneration}
+              className="flex items-center gap-2 rounded-lg border border-error px-4 py-2 text-sm text-error hover:bg-error/10"
+            >
+              <X className="h-4 w-4" />
               Cancelar Geração
             </button>
           )}
           {!isActive && summary.errors > 0 && (
-            <button onClick={retryErrors} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark">
+            <button
+              onClick={retryErrors}
+              className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark"
+            >
+              <RotateCcw className="h-4 w-4" />
               Tentar Novamente os Erros
             </button>
           )}
-          <button onClick={toggleLogPanel} className="ml-auto rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft">
+          <button
+            onClick={toggleLogPanel}
+            className="ml-auto flex items-center gap-2 rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft"
+          >
+            <FileText className="h-4 w-4" />
             {logPanelOpen ? 'Fechar Log' : 'Ver Log'}
           </button>
         </div>

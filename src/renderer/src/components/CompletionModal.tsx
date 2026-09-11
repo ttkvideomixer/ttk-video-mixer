@@ -1,3 +1,4 @@
+import { CircleCheck, FilePlus, FolderOpen, Undo2 } from 'lucide-react'
 import { useAppStore } from '../state/useAppStore'
 import { formatNumberPtBr } from '../utils/format'
 import ModalShell from './ModalShell'
@@ -13,7 +14,10 @@ function CompletionModal(): JSX.Element {
 
   return (
     <ModalShell title="Geração Concluída" onClose={closeModal}>
-      <p className="text-center text-sm text-gray-300">
+      <div className="flex justify-center">
+        <CircleCheck className="h-10 w-10 text-success" />
+      </div>
+      <p className="mt-2 text-center text-sm text-gray-300">
         {formatNumberPtBr(summary.total)} {summary.total === 1 ? 'vídeo processado' : 'vídeos processados'}
       </p>
 
@@ -31,11 +35,16 @@ function CompletionModal(): JSX.Element {
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button
           onClick={() => outputFolderUsed && window.api.openPath(outputFolderUsed)}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-black hover:bg-brand-dark"
+          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-bold text-black hover:bg-brand-dark"
         >
+          <FolderOpen className="h-4 w-4" />
           Abrir Pasta
         </button>
-        <button onClick={backToProject} className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft">
+        <button
+          onClick={backToProject}
+          className="flex items-center gap-2 rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft"
+        >
+          <Undo2 className="h-4 w-4" />
           Voltar ao Projeto
         </button>
         <button
@@ -43,8 +52,9 @@ function CompletionModal(): JSX.Element {
             backToProject()
             newProject()
           }}
-          className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft"
+          className="flex items-center gap-2 rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft"
         >
+          <FilePlus className="h-4 w-4" />
           Novo Projeto
         </button>
       </div>

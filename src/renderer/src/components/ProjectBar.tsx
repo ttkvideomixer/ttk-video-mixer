@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check, FilePlus, History, Save } from 'lucide-react'
 import { useAppStore } from '../state/useAppStore'
 
 function ProjectBar(): JSX.Element {
@@ -35,8 +36,9 @@ function ProjectBar(): JSX.Element {
           <div className="relative">
             <button
               onClick={() => setRecentOpen((v) => !v)}
-              className="rounded-lg border border-bg-border px-3 py-2 text-sm text-gray-300 hover:bg-bg-soft"
+              className="flex items-center gap-2 rounded-lg border border-bg-border px-3 py-2 text-sm text-gray-300 hover:bg-bg-soft"
             >
+              <History className="h-4 w-4" />
               Projetos Recentes
             </button>
             {recentOpen && (
@@ -65,9 +67,10 @@ function ProjectBar(): JSX.Element {
 
           <button
             onClick={newProject}
-            className="rounded-lg border border-bg-border px-3 py-2 text-sm text-gray-300 hover:bg-bg-soft"
+            className="flex items-center gap-2 rounded-lg border border-bg-border px-3 py-2 text-sm text-gray-300 hover:bg-bg-soft"
             title="Ctrl+N"
           >
+            <FilePlus className="h-4 w-4" />
             Novo Projeto
           </button>
 
@@ -77,9 +80,10 @@ function ProjectBar(): JSX.Element {
               setSavedFlash(true)
               setTimeout(() => setSavedFlash(false), 1500)
             }}
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark"
+            className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black transition-all duration-150 hover:-translate-y-0.5 hover:bg-brand-dark"
             title="Ctrl+S"
           >
+            {savedFlash ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
             {savedFlash ? 'Salvo!' : 'Salvar Projeto'}
           </button>
         </div>
@@ -91,11 +95,20 @@ function ProjectBar(): JSX.Element {
             Primeiros passos
           </h2>
           <ol className="grid grid-cols-1 gap-2 text-sm text-gray-300 md:grid-cols-5">
-            <li className="rounded-lg bg-bg-soft px-3 py-2">1. Adicione seus Ganchos</li>
-            <li className="rounded-lg bg-bg-soft px-3 py-2">2. Adicione seus Corpos</li>
-            <li className="rounded-lg bg-bg-soft px-3 py-2">3. Adicione seus CTAs</li>
-            <li className="rounded-lg bg-bg-soft px-3 py-2">4. Escolha a pasta de destino</li>
-            <li className="rounded-lg bg-bg-soft px-3 py-2">5. Clique em Gerar Vídeos</li>
+            {[
+              'Adicione seus Ganchos',
+              'Adicione seus Corpos',
+              'Adicione seus CTAs',
+              'Escolha a pasta de destino',
+              'Clique em Gerar Vídeos'
+            ].map((step, i) => (
+              <li key={step} className="flex items-center gap-2 rounded-lg bg-bg-soft px-3 py-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-black">
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
           </ol>
         </div>
       )}

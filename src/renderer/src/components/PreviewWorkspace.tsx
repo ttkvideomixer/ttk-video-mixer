@@ -171,46 +171,57 @@ function PreviewWorkspace(): JSX.Element {
             aumentar/diminuir a letra
           </p>
 
-          <div
-            ref={containerRef}
-            className="relative overflow-hidden rounded-xl bg-black"
-            style={{ width: containerSize.width, height: containerSize.height }}
-          >
-            <video
-              ref={videoRef}
-              key={testPreviewPath}
-              src={toMediaUrl(testPreviewPath)}
-              autoPlay
-              className="absolute inset-0 h-full w-full cursor-pointer object-fill"
-              onClick={togglePlay}
-              onEnded={handleEnded}
-              onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-              onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
-            />
-            {overlays.showSafeZones && <SafeZoneGuides />}
+          {/*
+            Smartphone-style bezel around the preview — purely decorative, an
+            ancestor of the measured box below. containerRef itself keeps its
+            exact untouched box (no border/padding added directly on it),
+            since PreviewOverlayBox and SafeZoneGuides read its
+            getBoundingClientRect() to match the real ffmpeg render pixel
+            space 1:1 — adding chrome there would throw that math off.
+          */}
+          <div className="relative rounded-[2rem] border-[6px] border-bg-soft bg-black p-1.5 shadow-card">
+            <div className="pointer-events-none absolute left-1/2 top-3.5 z-20 h-1.5 w-14 -translate-x-1/2 rounded-full bg-bg-soft" />
+            <div
+              ref={containerRef}
+              className="relative overflow-hidden rounded-[1.35rem] bg-black"
+              style={{ width: containerSize.width, height: containerSize.height }}
+            >
+              <video
+                ref={videoRef}
+                key={testPreviewPath}
+                src={toMediaUrl(testPreviewPath)}
+                autoPlay
+                className="absolute inset-0 h-full w-full cursor-pointer object-fill"
+                onClick={togglePlay}
+                onEnded={handleEnded}
+                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
+              />
+              {overlays.showSafeZones && <SafeZoneGuides />}
 
-            {hookTextContent && activeSegment === 'hook' && (
-              <PreviewOverlayBox
-                overlay={overlays.hookText}
-                content={hookTextContent}
-                containerRef={containerRef}
-                containerSize={containerSize}
-                onChange={(partial) => updateOverlay('hookText', partial)}
-                inRiskZone={isInRiskZone(overlays.hookText)}
-                accentColor="#a48bff"
-              />
-            )}
-            {visualCtaEnabled && activeSegment === 'cta' && (
-              <PreviewOverlayBox
-                overlay={overlays.visualCta}
-                content={previewExampleCtaPhrase ?? 'Veja na sacolinha laranja'}
-                containerRef={containerRef}
-                containerSize={containerSize}
-                onChange={(partial) => updateOverlay('visualCta', partial)}
-                inRiskZone={isInRiskZone(overlays.visualCta)}
-                accentColor="#22c55e"
-              />
-            )}
+              {hookTextContent && activeSegment === 'hook' && (
+                <PreviewOverlayBox
+                  overlay={overlays.hookText}
+                  content={hookTextContent}
+                  containerRef={containerRef}
+                  containerSize={containerSize}
+                  onChange={(partial) => updateOverlay('hookText', partial)}
+                  inRiskZone={isInRiskZone(overlays.hookText)}
+                  accentColor="#25f4ee"
+                />
+              )}
+              {visualCtaEnabled && activeSegment === 'cta' && (
+                <PreviewOverlayBox
+                  overlay={overlays.visualCta}
+                  content={previewExampleCtaPhrase ?? 'Veja na sacolinha laranja'}
+                  containerRef={containerRef}
+                  containerSize={containerSize}
+                  onChange={(partial) => updateOverlay('visualCta', partial)}
+                  inRiskZone={isInRiskZone(overlays.visualCta)}
+                  accentColor="#22c55e"
+                />
+              )}
+            </div>
           </div>
 
           <div className="flex w-full max-w-[280px] items-center gap-2">

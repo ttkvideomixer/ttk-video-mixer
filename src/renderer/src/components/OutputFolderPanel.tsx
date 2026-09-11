@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { FolderOpen, HardDrive } from 'lucide-react'
 import { useAppStore } from '../state/useAppStore'
 
 function OutputFolderPanel(): JSX.Element {
@@ -28,8 +29,9 @@ function OutputFolderPanel(): JSX.Element {
 
       <button
         onClick={setOutputFolder}
-        className="self-start rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark"
+        className="flex items-center gap-2 self-start rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark"
       >
+        <FolderOpen className="h-3.5 w-3.5" />
         Escolher Pasta
       </button>
 
@@ -39,7 +41,12 @@ function OutputFolderPanel(): JSX.Element {
             {outputFolder}
           </p>
           {finalPath && <p className="mt-1 truncate text-gray-500" title={finalPath}>Saida final: {finalPath}</p>}
-          {diskInfo && <p className="mt-1 text-gray-500">Espaço livre em disco: {diskInfo}</p>}
+          {diskInfo && (
+            <p className="mt-1 flex items-center gap-1.5 text-gray-500">
+              <HardDrive className="h-3 w-3" />
+              Espaço livre em disco: {diskInfo}
+            </p>
+          )}
         </div>
       ) : (
         <p className="text-xs text-gray-500">Nenhuma pasta selecionada.</p>

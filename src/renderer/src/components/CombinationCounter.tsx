@@ -28,7 +28,7 @@ function CombinationCounter(): JSX.Element {
       <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-gray-500">Resultado</h2>
 
       <div className="flex flex-col items-center gap-2 text-center">
-        <span className="text-5xl font-extrabold text-white">{formatNumberPtBr(effectiveTotal)}</span>
+        <span className="gradient-text text-5xl font-extrabold">{formatNumberPtBr(effectiveTotal)}</span>
         <span className="text-sm font-semibold uppercase tracking-wide text-brand-light">
           {effectiveTotal === 1 ? 'vídeo será gerado' : 'vídeos serão gerados'}
         </span>

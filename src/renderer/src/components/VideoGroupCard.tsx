@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { FolderOpen, Trash2, Type, Upload, UploadCloud } from 'lucide-react'
 import type { VideoCategory } from '@shared/types'
 import { useAppStore } from '../state/useAppStore'
 import VideoItemRow from './VideoItemRow'
@@ -99,8 +100,9 @@ function VideoGroupCard({ category }: Props): JSX.Element {
               setImporting(false)
             }
           }}
-          className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
         >
+          <Upload className="h-3.5 w-3.5" />
           {meta.addLabel}
         </button>
         <button
@@ -113,9 +115,10 @@ function VideoGroupCard({ category }: Props): JSX.Element {
               setImporting(false)
             }
           }}
-          className="rounded-lg border border-bg-border px-3 py-2 text-xs text-gray-300 hover:bg-bg-soft disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-bg-border px-3 py-2 text-xs text-gray-300 hover:bg-bg-soft disabled:opacity-50"
           title="Importar todos os vídeos de uma pasta"
         >
+          <FolderOpen className="h-3.5 w-3.5" />
           Pasta
         </button>
       </div>
@@ -125,9 +128,10 @@ function VideoGroupCard({ category }: Props): JSX.Element {
           onClick={openHookTextsModal}
           disabled={videos.length === 0}
           title={videos.length === 0 ? 'Adicione pelo menos um vídeo de Gancho primeiro.' : undefined}
-          className="self-start text-xs text-gray-500 underline decoration-dotted hover:text-brand-light disabled:cursor-not-allowed disabled:text-gray-700 disabled:no-underline"
+          className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-brand-light disabled:cursor-not-allowed disabled:text-gray-700"
         >
-          + Texto de Gancho{hookTextsCount > 0 ? ` (${hookTextsCount})` : ''}
+          <Type className="h-3.5 w-3.5" />
+          Texto de Gancho{hookTextsCount > 0 ? ` (${hookTextsCount})` : ''}
         </button>
       )}
 
@@ -144,7 +148,12 @@ function VideoGroupCard({ category }: Props): JSX.Element {
       )}
 
       {videos.length === 0 ? (
-        <div className="flex h-28 flex-col items-center justify-center rounded-xl border border-dashed border-bg-border text-center text-xs text-gray-500">
+        <div
+          className={`flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-center text-xs text-gray-500 transition-colors ${
+            dragActive ? 'border-brand text-brand-light' : 'border-bg-border'
+          }`}
+        >
+          <UploadCloud className="h-5 w-5" />
           Arraste e solte os vídeos aqui
         </div>
       ) : (
@@ -171,8 +180,9 @@ function VideoGroupCard({ category }: Props): JSX.Element {
       {videos.length > 0 && (
         <button
           onClick={() => requestClearCategory(category)}
-          className="self-start text-xs text-gray-500 hover:text-error"
+          className="flex items-center gap-1.5 self-start text-xs text-gray-500 hover:text-error"
         >
+          <Trash2 className="h-3.5 w-3.5" />
           Limpar todos
         </button>
       )}
