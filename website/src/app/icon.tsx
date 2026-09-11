@@ -14,7 +14,7 @@ export default function Icon(): ImageResponse {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #3b82f6 0%, #7c5cff 50%, #8b5cf6 100%)',
+          background: 'linear-gradient(135deg, #25f4ee 0%, #fe2c55 100%)',
           borderRadius: 14
         }}
       >
@@ -24,7 +24,7 @@ export default function Icon(): ImageResponse {
             height: 0,
             borderTop: '14px solid transparent',
             borderBottom: '14px solid transparent',
-            borderLeft: '22px solid white',
+            borderLeft: '22px solid black',
             marginLeft: 6
           }}
         />

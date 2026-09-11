@@ -55,8 +55,8 @@ export default function OnboardingResultPage(): JSX.Element {
     const duration = 1400
     const end = Date.now() + duration
     const frame = (): void => {
-      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#7c5cff', '#3b82f6', '#a48bff'] })
-      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#7c5cff', '#3b82f6', '#a48bff'] })
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#25f4ee', '#fe2c55', '#7ffaf5'] })
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#25f4ee', '#fe2c55', '#7ffaf5'] })
       if (Date.now() < end) requestAnimationFrame(frame)
     }
     frame()

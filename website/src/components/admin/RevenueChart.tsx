@@ -20,19 +20,19 @@ export default function RevenueChart({ data }: { data: RevenueTimeseriesPoint[] 
       <AreaChart data={chartData}>
         <defs>
           <linearGradient id="grossGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#7c5cff" stopOpacity={0.4} />
-            <stop offset="95%" stopColor="#7c5cff" stopOpacity={0} />
+            <stop offset="5%" stopColor="#25f4ee" stopOpacity={0.4} />
+            <stop offset="95%" stopColor="#25f4ee" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#242639" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
         <XAxis dataKey="bucket" tick={{ fill: '#9ca3af', fontSize: 11 }} tickFormatter={(v: string) => v.slice(5)} />
         <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} tickFormatter={(v: number) => `R$${v}`} />
         <Tooltip
-          contentStyle={{ backgroundColor: '#151822', border: '1px solid #242639', borderRadius: 8 }}
-          labelStyle={{ color: '#f5f5f7' }}
+          contentStyle={{ backgroundColor: '#111111', border: '1px solid #2a2a2a', borderRadius: 8 }}
+          labelStyle={{ color: '#ffffff' }}
           formatter={(value: number) => formatCents(value * 100)}
         />
-        <Area type="monotone" dataKey="grossReais" name="Receita bruta" stroke="#7c5cff" fill="url(#grossGradient)" />
+        <Area type="monotone" dataKey="grossReais" name="Receita bruta" stroke="#25f4ee" fill="url(#grossGradient)" />
       </AreaChart>
     </ResponsiveContainer>
   )
