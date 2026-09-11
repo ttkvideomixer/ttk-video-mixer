@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { CircleCheck, CreditCard, Loader2, QrCode } from 'lucide-react'
 import { useAppStore } from '../state/useAppStore'
 import { useAuthStore } from '../state/useAuthStore'
 import { billingErrorMessage, PIX_30_DAYS_PRICE_LABEL, PRO_MONTHLY_PRICE_LABEL } from '@shared/billing'
@@ -104,13 +105,15 @@ function PaywallModal(): JSX.Element {
         )}
 
         {status === 'paid' && (
-          <div className="rounded-xl border border-success/40 bg-success/10 px-4 py-3 text-sm font-semibold text-success">
+          <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 px-4 py-3 text-sm font-semibold text-success">
+            <CircleCheck className="h-5 w-5 shrink-0" />
             Pagamento confirmado! Liberando o TTK Video Mixer Pro...
           </div>
         )}
 
         {status === 'waiting' && (
-          <div className="rounded-xl border border-brand/40 bg-brand/10 px-4 py-3 text-sm text-brand-light">
+          <div className="flex items-center gap-2 rounded-xl border border-brand/40 bg-brand/10 px-4 py-3 text-sm text-brand-light">
+            <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
             Aguardando confirmação do pagamento na aba do navegador. Isso é atualizado automaticamente assim que o
             pagamento for aprovado.
           </div>
@@ -141,8 +144,9 @@ function PaywallModal(): JSX.Element {
             <button
               onClick={handleCardCheckout}
               disabled={busy || !cpfValid}
-              className="rounded-lg bg-brand py-2.5 text-sm font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg bg-brand py-2.5 text-sm font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
             >
+              {status === 'creating' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
               {status === 'creating' ? 'Aguarde...' : 'Assinar com Cartão'}
             </button>
 
@@ -159,8 +163,9 @@ function PaywallModal(): JSX.Element {
             <button
               onClick={handlePixCheckout}
               disabled={busy || !cpfValid}
-              className="rounded-lg border border-brand px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-brand-light hover:bg-brand/10 disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg border border-brand px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-brand-light hover:bg-brand/10 disabled:opacity-50"
             >
+              {status === 'creating' ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
               {status === 'creating' ? 'Aguarde...' : 'Pagar 30 dias com Pix'}
             </button>
           </div>
