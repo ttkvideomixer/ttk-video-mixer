@@ -1,9 +1,12 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest'
 import { writeFileSync, unlinkSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { handleMediaRequest } from './mediaProtocol'
 
-const TEST_FILE = 'C:/Users/PC/AppData/Local/Temp/range-test-file.bin'
+const TEST_FILE = join(tmpdir(), 'range-test-file.bin')
+const MISSING_FILE = join(tmpdir(), 'range-test-file-does-not-exist.bin')
 const SIZE = 1000
 
 beforeAll(() => {
@@ -61,7 +64,7 @@ describe('handleMediaRequest (vmfile:// protocol, Range support)', () => {
   })
 
   it('returns 404 for a file that does not exist', async () => {
-    const req = new Request(pathToFileURL('C:/nonexistent/file.mp4').toString().replace('file://', 'vmfile://'))
+    const req = new Request(pathToFileURL(MISSING_FILE).toString().replace('file://', 'vmfile://'))
     const res = await handleMediaRequest(req)
     expect(res.status).toBe(404)
   })
