@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { Menu, X } from 'lucide-react'
 import { useAuth } from './AuthProvider'
 
 const NAV_LINKS = [
@@ -80,7 +81,7 @@ export default function Header({ variant = 'full' }: HeaderProps): JSX.Element {
             onClick={() => setMenuOpen((v) => !v)}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-bg-border text-gray-200 md:hidden"
           >
-            {menuOpen ? '✕' : '☰'}
+            {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
         )}
       </div>

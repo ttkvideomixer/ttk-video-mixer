@@ -83,7 +83,7 @@ export default function ReasonModal({ title, description, confirmLabel, requireT
         <button
           onClick={handleConfirm}
           disabled={!canConfirm || busy}
-          className="rounded-lg bg-error px-5 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-40"
+          className="rounded-lg bg-error px-5 py-2 text-sm font-bold text-black hover:bg-red-600 disabled:opacity-40"
         >
           {busy ? 'Aguarde...' : confirmLabel}
         </button>

@@ -250,7 +250,7 @@ function PreviewWorkspace(): JSX.Element {
 
           <button
             onClick={approvePreview}
-            className="w-full max-w-[280px] rounded-lg bg-success px-4 py-2 text-sm font-bold text-white hover:opacity-90"
+            className="w-full max-w-[280px] rounded-lg bg-success px-4 py-2 text-sm font-bold text-black hover:opacity-90"
           >
             Aprovar Preview
           </button>

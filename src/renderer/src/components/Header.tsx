@@ -1,5 +1,6 @@
 import { useAppStore } from '../state/useAppStore'
 import { useAuthStore } from '../state/useAuthStore'
+import Badge from './Badge'
 
 function Header(): JSX.Element {
   const openAccount = useAppStore((s) => s.openAccount)
@@ -44,13 +45,9 @@ function Header(): JSX.Element {
             onClick={openAccount}
             className="flex items-center gap-2 rounded-full border border-bg-border bg-bg-soft px-3 py-1.5 text-xs text-gray-300 hover:bg-bg-border"
           >
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
-                isBlocked ? 'bg-error text-black' : isPro ? 'bg-brand text-black' : 'bg-bg-border text-gray-400'
-              }`}
-            >
+            <Badge variant={isBlocked ? 'error' : isPro ? 'brand' : 'neutral'}>
               {isBlocked ? 'Bloqueada' : isPro ? 'Pro' : 'Grátis'}
-            </span>
+            </Badge>
             <span className="max-w-[140px] truncate">{user.email}</span>
             {trialLabel && <span className="text-gray-500">· {trialLabel}</span>}
             {bonusLabel && <span className="text-brand-light">· {bonusLabel}</span>}

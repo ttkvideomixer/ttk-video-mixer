@@ -14,7 +14,7 @@ function ConfirmClearCategoryModal(): JSX.Element {
         </button>
         <button
           onClick={confirmClearCategory}
-          className="rounded-lg bg-error px-5 py-2 text-sm font-bold text-white hover:opacity-90"
+          className="rounded-lg bg-error px-5 py-2 text-sm font-bold text-black hover:opacity-90"
         >
           Remover Todos
         </button>

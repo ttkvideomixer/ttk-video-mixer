@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react'
 import { getMissingGenerateRequirements, useAppStore } from '../state/useAppStore'
 import ModalShell from './ModalShell'
 
@@ -17,7 +18,7 @@ function MissingRequirementsModal(): JSX.Element {
       <ul className="mt-3 flex flex-col gap-2">
         {missing.map((m) => (
           <li key={m} className="flex items-start gap-2 rounded-lg bg-bg-soft px-3 py-2 text-sm text-warning">
-            <span>⚠</span>
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{m}</span>
           </li>
         ))}

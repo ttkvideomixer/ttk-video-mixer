@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { useAuthStore } from '../state/useAuthStore'
 import ModalShell from './ModalShell'
+import Badge from './Badge'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -94,13 +95,7 @@ function AccountScreen(): JSX.Element {
         <div className="rounded-xl border border-bg-border bg-bg-soft p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Plano</span>
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${
-                isPro ? 'bg-brand text-black' : 'bg-bg-border text-gray-300'
-              }`}
-            >
-              {isPro ? 'Pro' : 'Grátis'}
-            </span>
+            <Badge variant={isPro ? 'brand' : 'neutral'}>{isPro ? 'Pro' : 'Grátis'}</Badge>
           </div>
           <p className="mt-2 text-sm text-gray-300">{statusLabel}</p>
           {entitlement && entitlement.plan === 'free' && (
@@ -195,7 +190,7 @@ function AccountScreen(): JSX.Element {
               <button
                 onClick={handleDeleteAccount}
                 disabled={busyAction !== null}
-                className="rounded-md bg-error px-3 py-1.5 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                className="rounded-md bg-error px-3 py-1.5 text-xs font-bold text-black hover:bg-red-600 disabled:opacity-50"
               >
                 {busyAction === 'delete' ? 'Excluindo...' : 'Confirmar exclusão'}
               </button>
