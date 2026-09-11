@@ -295,11 +295,10 @@ function Timeline({
   }
 
   const startScrub = (e: React.PointerEvent<HTMLDivElement>): void => {
-    // Capture on currentTarget (the track itself), not target — target can
-    // be an inner segment bar, and losing capture mid-drag is what made the
-    // scrubber snap back to 0 once a click landed on one of those bars
-    // (hook-text / CTA rows only render when those features are enabled,
-    // which is exactly when this misfired).
+    // Capture on currentTarget (the wrapper), not target — target can be any
+    // inner row, and capturing here is what lets a single drag gesture
+    // sweep across all three rows (Vídeo / Texto do Gancho / CTA Visual)
+    // as one continuous scrub track.
     e.currentTarget.setPointerCapture(e.pointerId)
     seekFromEvent(e)
   }
@@ -329,38 +328,28 @@ function Timeline({
         </TimelineRow>
 
         <TimelineRow label="Texto do Gancho">
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation()
-              onSeek(0)
-            }}
-            title="Ir para o início do texto de gancho"
-            className="h-3 w-full cursor-pointer rounded bg-bg-soft"
-          >
+          {/* No onClick/onPointerDown of its own — this used to be a button
+              that unconditionally jumped to a fixed point (fraction 0)
+              whenever clicked, stopping the drag from the outer wrapper
+              along the way. That meant any drag or click landing on this
+              row discarded wherever the user was actually trying to go and
+              snapped back to the start instead. Now it's just a plain
+              visual row and the outer wrapper's own pointer handlers scrub
+              it exactly like the Vídeo row above. */}
+          <div title="Texto do gancho" className="h-3 w-full rounded bg-bg-soft">
             {hasHookText && <div style={{ width: `${hookFraction * 100}%` }} className="h-full rounded bg-brand-light" />}
-          </button>
+          </div>
         </TimelineRow>
 
         <TimelineRow label="CTA Visual">
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation()
-              onSeek(hookFraction + bodyFraction)
-            }}
-            title="Ir para o início do CTA visual"
-            className="h-3 w-full cursor-pointer rounded bg-bg-soft"
-          >
+          <div title="CTA visual" className="h-3 w-full rounded bg-bg-soft">
             {hasVisualCta && (
               <div
                 style={{ width: `${ctaFraction * 100}%`, marginLeft: `${(hookFraction + bodyFraction) * 100}%` }}
                 className="h-full rounded bg-success"
               />
             )}
-          </button>
+          </div>
         </TimelineRow>
       </div>
     </div>
