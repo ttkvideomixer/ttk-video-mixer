@@ -7,30 +7,32 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          DEFAULT: '#07070b',
-          card: '#101118',
-          soft: '#161826',
-          border: '#242639'
+          DEFAULT: '#000000',
+          card: '#111111',
+          soft: '#1a1a1a',
+          border: '#2a2a2a'
         },
         brand: {
-          DEFAULT: '#7c5cff',
-          dark: '#5b3df0',
-          light: '#a48bff'
+          DEFAULT: '#25f4ee',
+          dark: '#12c7c0',
+          light: '#7ffaf5'
         },
         accent: {
           blue: '#3b82f6',
           violet: '#8b5cf6'
         },
+        cyan: '#25f4ee',
+        pink: '#fe2c55',
         success: '#22c55e',
-        error: '#ef4444',
+        error: '#fe2c55',
         warning: '#eab308'
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif']
       },
       backgroundImage: {
-        'brand-gradient': 'linear-gradient(135deg, #3b82f6 0%, #7c5cff 50%, #8b5cf6 100%)',
-        'radial-fade': 'radial-gradient(circle at 50% 0%, rgba(124,92,255,0.18), transparent 60%)'
+        'brand-gradient': 'linear-gradient(135deg, #25f4ee 0%, #fe2c55 100%)',
+        'radial-fade': 'radial-gradient(circle at 50% 0%, rgba(37,244,238,0.14), transparent 60%)'
       },
       borderRadius: {
         xl: '14px',
@@ -38,8 +40,8 @@ const config: Config = {
         '3xl': '28px'
       },
       boxShadow: {
-        card: '0 4px 24px rgba(0,0,0,0.35)',
-        glow: '0 0 40px rgba(124,92,255,0.25)'
+        card: '0 4px 24px rgba(0,0,0,0.5)',
+        glow: '0 0 40px rgba(37,244,238,0.22)'
       },
       keyframes: {
         'fade-up': {
@@ -49,11 +51,11 @@ const config: Config = {
         'hype-pulse': {
           '0%, 100%': {
             transform: 'scale(1)',
-            boxShadow: '0 0 0px rgba(124,92,255,0), 0 0 18px rgba(139,92,246,0.35)'
+            boxShadow: '0 0 0px rgba(37,244,238,0), 0 0 18px rgba(254,44,85,0.35)'
           },
           '50%': {
             transform: 'scale(1.04)',
-            boxShadow: '0 0 30px rgba(124,92,255,0.9), 0 0 55px rgba(139,92,246,0.6)'
+            boxShadow: '0 0 30px rgba(37,244,238,0.9), 0 0 55px rgba(254,44,85,0.6)'
           }
         }
       },

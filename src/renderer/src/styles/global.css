@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* UI font, bundled locally (public/fonts) so the interface never depends on
+   an internet connection or the font being installed on the user's machine. */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
 /* Same font bundled into the final rendered videos (see resources/fonts) — used
    in the Preview overlay editor so the on-screen text matches the real output. */
 @font-face {
@@ -23,9 +46,10 @@ body,
 }
 
 body {
-  background-color: #0b0d12;
-  color: #e7e9ee;
+  background-color: #000000;
+  color: #ffffff;
   font-family:
+    'Inter',
     'Segoe UI',
     system-ui,
     -apple-system,
@@ -43,16 +67,16 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #2a2f3f;
+  background-color: #2a2a2a;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #383f56;
+  background-color: #3a3a3a;
 }
 
 .drag-active {
-  outline: 2px dashed #7c5cff;
+  outline: 2px dashed #25f4ee;
   outline-offset: -8px;
-  background-color: rgba(124, 92, 255, 0.08);
+  background-color: rgba(37, 244, 238, 0.08);
 }
