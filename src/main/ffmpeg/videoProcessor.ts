@@ -154,6 +154,17 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
       '-c:v', 'libx264',
       '-preset', 'medium',
       '-crf', String(input.settings.crf),
+      // libx264's default keyframe interval is ~8-10s (no -g given). A
+      // player can only seek precisely TO a keyframe — anything between
+      // two gets rounded to the nearest one — so with sparse keyframes,
+      // dragging the Preview scrubber to an arbitrary point visibly lands
+      // several seconds away from where it was released. Forcing a
+      // keyframe every ~1s (and disabling libx264's adaptive scene-cut
+      // placement, which would otherwise still space them unevenly) makes
+      // every point on the timeline land within ~1s of where it's dropped.
+      '-g', '30',
+      '-keyint_min', '30',
+      '-sc_threshold', '0',
       '-pix_fmt', 'yuv420p',
       '-c:a', 'aac',
       '-b:a', `${input.settings.audioBitrateKbps}k`,

@@ -98,6 +98,16 @@ function PreviewWorkspace(): JSX.Element {
     const clampedFraction = Math.min(Math.max(fraction, 0), 1)
     const target = Math.min(clampedFraction * effectiveDuration, Math.max(0, effectiveDuration - 0.15))
     videoRef.current.currentTime = target
+    // The seek math itself was always accurate — the actual complaint was
+    // that the video never stayed at the dropped point: since it kept
+    // autoplaying through every scrub, by the time the frame repainted it
+    // had already moved past wherever the user let go (confirmed by
+    // measurement: releasing at a point while playing left it ~1s further
+    // ahead within a second). Pausing on every scrub is what makes the
+    // timeline actually stop where it's dragged to, matching a normal
+    // video editor's scrubbing behavior.
+    videoRef.current.pause()
+    setIsPlaying(false)
   }
 
   const togglePlay = (): void => {
