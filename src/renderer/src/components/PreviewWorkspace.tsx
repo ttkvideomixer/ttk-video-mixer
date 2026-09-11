@@ -277,8 +277,20 @@ function Timeline({
   playheadPercent: number
   onSeek: (fraction: number) => void
 }): JSX.Element {
+  // Every row is a flex ["w-24" label][gap-2][bar] — the label + gap column
+  // is always exactly 6.5rem wide, identical on all three rows. Measuring
+  // the drag rect on the OUTER wrapper (which also spans that label text)
+  // used to compute fractions against the full row width instead of just
+  // the colored-bar width, so roughly the first third of every drag was a
+  // dead zone that mapped nowhere near the visible bar — the scrubber could
+  // never be dragged to reach the true start or end. Measuring against the
+  // bar track itself fixes that; it's horizontally aligned the same on
+  // every row, so one measurement is valid for the whole component.
+  const trackRef = useRef<HTMLDivElement>(null)
+
   const seekFromEvent = (e: React.PointerEvent<HTMLDivElement>): void => {
-    const rect = e.currentTarget.getBoundingClientRect()
+    const rect = trackRef.current?.getBoundingClientRect()
+    if (!rect || rect.width <= 0) return
     onSeek(Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)))
   }
 
@@ -303,13 +315,13 @@ function Timeline({
       <div className="relative py-1">
         <div
           className="pointer-events-none absolute inset-y-0 z-10 w-px bg-white"
-          style={{ left: `${playheadPercent}%` }}
+          style={{ left: `calc(6.5rem + ${playheadPercent / 100} * (100% - 6.5rem))` }}
         >
           <div className="absolute -top-1 h-2 w-2 -translate-x-1/2 rounded-full bg-white" />
         </div>
 
         <TimelineRow label="Vídeo">
-          <div className="flex h-5 w-full overflow-hidden rounded">
+          <div ref={trackRef} className="flex h-5 w-full overflow-hidden rounded">
             <div style={{ width: `${hookFraction * 100}%` }} className="bg-brand" />
             <div style={{ width: `${bodyFraction * 100}%` }} className="bg-brand-dark" />
             <div style={{ width: `${ctaFraction * 100}%` }} className="bg-success/70" />
