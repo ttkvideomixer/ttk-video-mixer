@@ -33,7 +33,7 @@ function MixerMachineAnimation(): JSX.Element {
         whileInView={{ opacity: 1, scaleY: 1 }}
         viewport={{ once: true }}
         transition={{ delay: 0.5 }}
-        className="flex h-16 w-40 items-center justify-center rounded-2xl bg-brand-gradient text-xs font-extrabold uppercase tracking-widest text-white shadow-glow"
+        className="flex h-16 w-40 items-center justify-center rounded-2xl bg-brand-gradient text-xs font-extrabold uppercase tracking-widest text-black shadow-glow"
       >
         Mixer
       </motion.div>
@@ -72,7 +72,7 @@ export default function HowItWorks(): JSX.Element {
           {STEPS.map((step, i) => (
             <Reveal key={step.n} delay={i * 0.08}>
               <div className="h-full rounded-2xl border border-bg-border bg-bg-card p-5 transition hover:-translate-y-1 hover:border-brand/50">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-xs font-extrabold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-xs font-extrabold text-black">
                   {step.n}
                 </span>
                 <h3 className="mt-4 text-sm font-bold text-white">{step.title}</h3>

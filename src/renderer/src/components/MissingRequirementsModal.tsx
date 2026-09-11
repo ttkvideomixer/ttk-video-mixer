@@ -23,7 +23,7 @@ function MissingRequirementsModal(): JSX.Element {
         ))}
       </ul>
       <div className="mt-6 flex justify-end">
-        <button onClick={closeModal} className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark">
+        <button onClick={closeModal} className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-black hover:bg-brand-dark">
           Entendi
         </button>
       </div>

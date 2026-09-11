@@ -56,7 +56,7 @@ export default function MixerAnimation(): JSX.Element {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.45 }}
-            className="w-full rounded-xl bg-brand-gradient px-4 py-3 text-center text-sm font-extrabold tracking-wide text-white shadow-glow"
+            className="w-full rounded-xl bg-brand-gradient px-4 py-3 text-center text-sm font-extrabold tracking-wide text-black shadow-glow"
           >
             {combo.output}
           </motion.div>

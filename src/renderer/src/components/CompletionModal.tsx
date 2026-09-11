@@ -31,7 +31,7 @@ function CompletionModal(): JSX.Element {
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button
           onClick={() => outputFolderUsed && window.api.openPath(outputFolderUsed)}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white hover:bg-brand-dark"
+          className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-black hover:bg-brand-dark"
         >
           Abrir Pasta
         </button>

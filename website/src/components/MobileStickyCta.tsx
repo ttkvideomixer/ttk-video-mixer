@@ -19,7 +19,7 @@ export default function MobileStickyCta(): JSX.Element | null {
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-bg-border bg-bg/95 p-3 backdrop-blur md:hidden">
       <Link
         href="/criar-conta"
-        className="block rounded-xl bg-brand-gradient px-4 py-3 text-center text-sm font-extrabold uppercase tracking-wide text-white shadow-glow"
+        className="block rounded-xl bg-brand-gradient px-4 py-3 text-center text-sm font-extrabold uppercase tracking-wide text-black shadow-glow"
       >
         Testar Grátis
       </Link>

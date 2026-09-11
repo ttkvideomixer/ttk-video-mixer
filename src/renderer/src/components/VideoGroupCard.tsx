@@ -99,7 +99,7 @@ function VideoGroupCard({ category }: Props): JSX.Element {
               setImporting(false)
             }
           }}
-          className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
+          className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
         >
           {meta.addLabel}
         </button>

@@ -28,7 +28,7 @@ function OutputFolderPanel(): JSX.Element {
 
       <button
         onClick={setOutputFolder}
-        className="self-start rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark"
+        className="self-start rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark"
       >
         Escolher Pasta
       </button>

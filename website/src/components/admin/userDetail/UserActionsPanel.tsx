@@ -238,7 +238,7 @@ function InlineReasonForm({ onConfirm, confirmLabel, onClose }: { onConfirm: (re
         <button onClick={onClose} className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft">
           Cancelar
         </button>
-        <button onClick={handleSubmit} disabled={reason.trim().length < 3 || busy} className="rounded-lg bg-brand-gradient px-5 py-2 text-sm font-bold text-white disabled:opacity-40">
+        <button onClick={handleSubmit} disabled={reason.trim().length < 3 || busy} className="rounded-lg bg-brand-gradient px-5 py-2 text-sm font-bold text-black disabled:opacity-40">
           {busy ? 'Aguarde...' : confirmLabel}
         </button>
       </div>

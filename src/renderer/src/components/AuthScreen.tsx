@@ -138,7 +138,7 @@ function AuthScreen(): JSX.Element {
           <button
             type="submit"
             disabled={authBusy}
-            className="mt-2 rounded-lg bg-brand py-2.5 text-sm font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
+            className="mt-2 rounded-lg bg-brand py-2.5 text-sm font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
           >
             {authBusy
               ? 'Aguarde...'

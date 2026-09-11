@@ -63,7 +63,7 @@ export default function QuizQuestionCard({
             </p>
             <button
               onClick={onNext}
-              className="mt-4 w-full rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+              className="mt-4 w-full rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
             >
               {isLastQuestion ? 'Ver resultado' : 'Seguinte'}
             </button>

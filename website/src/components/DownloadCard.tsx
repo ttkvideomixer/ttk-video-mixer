@@ -33,7 +33,7 @@ export default function DownloadCard({ platform, title, subtitle, available, ver
       }`}
     >
       {recommended && (
-        <span className="mb-3 w-fit rounded-full bg-brand-gradient px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+        <span className="mb-3 w-fit rounded-full bg-brand-gradient px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-black">
           Recomendado para você
         </span>
       )}
@@ -44,7 +44,7 @@ export default function DownloadCard({ platform, title, subtitle, available, ver
         <>
           <button
             onClick={handleClick}
-            className="mt-5 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+            className="mt-5 rounded-xl bg-brand-gradient px-5 py-3 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
           >
             {state === 'idle' && `Baixar para ${title}`}
             {state === 'preparing' && 'Preparando download...'}

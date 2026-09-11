@@ -77,7 +77,7 @@ function HookTextsModal(): JSX.Element {
             <button
               onClick={handleBulkAdd}
               disabled={bulkText.trim().length === 0}
-              className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
+              className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
             >
               Adicionar todos
             </button>
@@ -110,7 +110,7 @@ function HookTextsModal(): JSX.Element {
       )}
 
       <div className="mt-5 flex justify-end">
-        <button onClick={closeModal} className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark">
+        <button onClick={closeModal} className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-black hover:bg-brand-dark">
           Concluído
         </button>
       </div>

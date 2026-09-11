@@ -119,7 +119,7 @@ function LoginContent(): JSX.Element {
             <button
               type="submit"
               disabled={busy}
-              className="mt-1 rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase tracking-wide text-white hover:opacity-90 disabled:opacity-50"
+              className="mt-1 rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase tracking-wide text-black hover:opacity-90 disabled:opacity-50"
             >
               {busy ? 'Aguarde...' : 'Entrar'}
             </button>
@@ -149,7 +149,7 @@ function LoginContent(): JSX.Element {
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase tracking-wide text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase tracking-wide text-black hover:opacity-90 disabled:opacity-50"
           >
             {busy ? 'Aguarde...' : 'Enviar link de recuperação'}
           </button>

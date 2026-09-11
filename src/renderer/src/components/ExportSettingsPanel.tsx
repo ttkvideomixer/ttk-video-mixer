@@ -109,7 +109,7 @@ function ExportSettingsPanel(): JSX.Element {
               onClick={() => setExportSettings({ concurrency: n as 1 | 2 | 3 | 4 })}
               className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold ${
                 settings.concurrency === n
-                  ? 'border-brand bg-brand text-white'
+                  ? 'border-brand bg-brand text-black'
                   : 'border-bg-border bg-bg-soft text-gray-300 hover:bg-bg-border'
               }`}
             >

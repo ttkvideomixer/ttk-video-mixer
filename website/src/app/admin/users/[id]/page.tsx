@@ -341,7 +341,7 @@ export default function AdminUserDetailPage(): JSX.Element {
               rows={2}
               className="flex-1 resize-none rounded-lg border border-bg-border bg-bg-soft px-3 py-2 text-sm text-white placeholder:text-gray-500"
             />
-            <button onClick={addNote} className="rounded-lg bg-brand-gradient px-4 text-sm font-bold text-white">
+            <button onClick={addNote} className="rounded-lg bg-brand-gradient px-4 text-sm font-bold text-black">
               Adicionar
             </button>
           </div>

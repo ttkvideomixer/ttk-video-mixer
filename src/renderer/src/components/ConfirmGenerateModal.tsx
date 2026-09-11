@@ -62,7 +62,7 @@ function ConfirmGenerateModal(): JSX.Element {
         </button>
         <button
           onClick={confirmGenerate}
-          className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark"
+          className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-black hover:bg-brand-dark"
         >
           Iniciar Geração
         </button>

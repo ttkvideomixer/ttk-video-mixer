@@ -164,7 +164,7 @@ function OnboardingContent(): JSX.Element {
             </p>
             <button
               onClick={startQuiz}
-              className="mt-8 rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+              className="mt-8 rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
             >
               Começar
             </button>

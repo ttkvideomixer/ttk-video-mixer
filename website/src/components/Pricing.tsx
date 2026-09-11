@@ -36,7 +36,7 @@ export default function Pricing(): JSX.Element {
 
           <Link
             href="/criar-conta"
-            className="mt-8 block rounded-xl bg-brand-gradient px-6 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+            className="mt-8 block rounded-xl bg-brand-gradient px-6 py-3.5 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
           >
             Começar com 27 Vídeos Grátis
           </Link>

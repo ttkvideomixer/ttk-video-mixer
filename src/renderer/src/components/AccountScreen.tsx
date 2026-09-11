@@ -96,7 +96,7 @@ function AccountScreen(): JSX.Element {
             <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Plano</span>
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${
-                isPro ? 'bg-brand text-white' : 'bg-bg-border text-gray-300'
+                isPro ? 'bg-brand text-black' : 'bg-bg-border text-gray-300'
               }`}
             >
               {isPro ? 'Pro' : 'Grátis'}

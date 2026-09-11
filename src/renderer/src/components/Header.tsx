@@ -46,7 +46,7 @@ function Header(): JSX.Element {
           >
             <span
               className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
-                isBlocked ? 'bg-error text-white' : isPro ? 'bg-brand text-white' : 'bg-bg-border text-gray-400'
+                isBlocked ? 'bg-error text-black' : isPro ? 'bg-brand text-black' : 'bg-bg-border text-gray-400'
               }`}
             >
               {isBlocked ? 'Bloqueada' : isPro ? 'Pro' : 'Grátis'}

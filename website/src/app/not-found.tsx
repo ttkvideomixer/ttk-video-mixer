@@ -7,7 +7,7 @@ export default function NotFound(): JSX.Element {
       <p className="text-sm text-gray-400">Essa página não existe ou foi movida.</p>
       <Link
         href="/"
-        className="mt-2 rounded-xl bg-brand-gradient px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+        className="mt-2 rounded-xl bg-brand-gradient px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
       >
         Voltar ao TTK VIDEO MIXER
       </Link>

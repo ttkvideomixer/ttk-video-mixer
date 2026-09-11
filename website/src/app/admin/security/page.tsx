@@ -119,7 +119,7 @@ export default function AdminSecurityPage(): JSX.Element {
             className="w-full rounded-lg border border-bg-border bg-bg-soft px-3 py-2.5 text-center text-lg tracking-widest text-white focus:border-brand focus:outline-none"
           />
           {error && <p className="text-xs text-error">{error}</p>}
-          <button type="submit" disabled={busy || code.length < 6} className="w-full rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase text-white disabled:opacity-50">
+          <button type="submit" disabled={busy || code.length < 6} className="w-full rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase text-black disabled:opacity-50">
             {busy ? 'Verificando...' : 'Ativar'}
           </button>
         </form>
@@ -136,7 +136,7 @@ export default function AdminSecurityPage(): JSX.Element {
             className="w-full rounded-lg border border-bg-border bg-bg-soft px-3 py-2.5 text-center text-lg tracking-widest text-white focus:border-brand focus:outline-none"
           />
           {error && <p className="text-xs text-error">{error}</p>}
-          <button type="submit" disabled={busy || code.length < 6} className="w-full rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase text-white disabled:opacity-50">
+          <button type="submit" disabled={busy || code.length < 6} className="w-full rounded-lg bg-brand-gradient py-2.5 text-sm font-bold uppercase text-black disabled:opacity-50">
             {busy ? 'Verificando...' : 'Confirmar'}
           </button>
         </form>

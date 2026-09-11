@@ -24,7 +24,7 @@ export default function DemoSection(): JSX.Element {
                   transition={{ delay: i * 0.1 }}
                   className={`rounded-lg px-4 py-2.5 text-xs font-bold ${
                     i === FLOW.length - 1
-                      ? 'bg-brand-gradient text-white shadow-glow'
+                      ? 'bg-brand-gradient text-black shadow-glow'
                       : 'border border-bg-border bg-bg-soft text-gray-300'
                   }`}
                 >

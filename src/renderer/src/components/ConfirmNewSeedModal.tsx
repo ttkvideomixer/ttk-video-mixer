@@ -16,7 +16,7 @@ function ConfirmNewSeedModal(): JSX.Element {
         <button onClick={closeModal} className="rounded-lg border border-bg-border px-4 py-2 text-sm text-gray-300 hover:bg-bg-soft">
           Cancelar
         </button>
-        <button onClick={confirmNewSeed} className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-white hover:bg-brand-dark">
+        <button onClick={confirmNewSeed} className="rounded-lg bg-brand px-5 py-2 text-sm font-bold text-black hover:bg-brand-dark">
           Confirmar
         </button>
       </div>

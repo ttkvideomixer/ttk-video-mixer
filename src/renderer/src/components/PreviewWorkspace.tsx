@@ -138,10 +138,10 @@ function PreviewWorkspace(): JSX.Element {
         <button
           disabled={testPreviewLoading}
           onClick={runTestPreview}
-          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
         >
           {testPreviewLoading && (
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black/30 border-t-black" />
           )}
           {testPreviewLoading ? 'Gerando prévia...' : 'Visualizar Combinação'}
         </button>

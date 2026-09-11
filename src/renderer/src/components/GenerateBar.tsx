@@ -69,7 +69,7 @@ function GenerateBar(): JSX.Element {
               </span>
             )}
           </span>
-          <span className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold uppercase text-white">Ver Andamento</span>
+          <span className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold uppercase text-black">Ver Andamento</span>
         </button>
       )}
 
@@ -80,7 +80,7 @@ function GenerateBar(): JSX.Element {
           onClick={() => setCombinationSettings({ mode: 'all', maxCombinations: null })}
           className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
             combinationSettings.mode === 'all'
-              ? 'border-brand bg-brand text-white'
+              ? 'border-brand bg-brand text-black'
               : 'border-bg-border bg-bg-soft text-gray-300 hover:bg-bg-border'
           }`}
         >
@@ -93,7 +93,7 @@ function GenerateBar(): JSX.Element {
             onClick={() => setCombinationSettings({ mode: 'limit', maxCombinations: n })}
             className={`rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-30 ${
               combinationSettings.mode === 'limit' && combinationSettings.maxCombinations === n
-                ? 'border-brand bg-brand text-white'
+                ? 'border-brand bg-brand text-black'
                 : 'border-bg-border bg-bg-soft text-gray-300 hover:bg-bg-border'
             }`}
           >
@@ -136,7 +136,7 @@ function GenerateBar(): JSX.Element {
       <div className="flex flex-col items-center gap-2 border-t border-bg-border pt-4">
         <button
           onClick={requestGenerate}
-          className="w-full max-w-md rounded-2xl bg-brand py-4 text-lg font-extrabold uppercase tracking-wide text-white shadow-card hover:bg-brand-dark"
+          className="w-full max-w-md rounded-2xl bg-brand py-4 text-lg font-extrabold uppercase tracking-wide text-black shadow-card hover:bg-brand-dark"
         >
           Gerar Vídeos
         </button>

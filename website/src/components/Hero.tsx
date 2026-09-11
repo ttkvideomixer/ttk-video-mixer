@@ -29,7 +29,7 @@ export default function Hero(): JSX.Element {
             <Link
               href="/criar-conta"
               onClick={() => track('hero_cta_clicked', { cta: 'primary' })}
-              className="rounded-xl bg-brand-gradient px-6 py-3.5 text-center text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+              className="rounded-xl bg-brand-gradient px-6 py-3.5 text-center text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
             >
               Testar 27 Vídeos Grátis
             </Link>

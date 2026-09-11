@@ -83,7 +83,7 @@ export default function OnboardingResultPage(): JSX.Element {
             <h1 className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
               Seu perfil está pronto{firstName ? `, ${firstName}` : ''}! 🎉
             </h1>
-            <span className="mt-4 inline-block rounded-full bg-brand-gradient px-5 py-2 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow">
+            <span className="mt-4 inline-block rounded-full bg-brand-gradient px-5 py-2 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow">
               {diagnosis.profileLabel}
             </span>
           </div>
@@ -139,7 +139,7 @@ export default function OnboardingResultPage(): JSX.Element {
             </p>
             <Link
               href="/download"
-              className="mt-5 inline-block rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+              className="mt-5 inline-block rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
             >
               Baixar TTK VIDEO MIXER
             </Link>

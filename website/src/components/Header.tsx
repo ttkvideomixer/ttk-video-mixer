@@ -22,7 +22,7 @@ function Logo(): JSX.Element {
     <Link href="/" className="flex items-center gap-2">
       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gradient">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="white" />
+          <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="black" />
         </svg>
       </span>
       <span className="text-sm font-extrabold tracking-tight text-white">
@@ -55,7 +55,7 @@ export default function Header({ variant = 'full' }: HeaderProps): JSX.Element {
           {!loading && user ? (
             <Link
               href="/download"
-              className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-white shadow-glow hover:opacity-90"
+              className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-black shadow-glow hover:opacity-90"
             >
               Baixar / Minha conta
             </Link>
@@ -66,7 +66,7 @@ export default function Header({ variant = 'full' }: HeaderProps): JSX.Element {
               </Link>
               <Link
                 href="/criar-conta"
-                className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-white shadow-glow hover:opacity-90"
+                className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-black shadow-glow hover:opacity-90"
               >
                 Começar Grátis
               </Link>
@@ -96,7 +96,7 @@ export default function Header({ variant = 'full' }: HeaderProps): JSX.Element {
           </nav>
           <div className="mt-4 flex flex-col gap-2">
             {!loading && user ? (
-              <Link href="/download" onClick={() => setMenuOpen(false)} className="rounded-lg bg-brand-gradient px-4 py-2 text-center text-sm font-bold text-white">
+              <Link href="/download" onClick={() => setMenuOpen(false)} className="rounded-lg bg-brand-gradient px-4 py-2 text-center text-sm font-bold text-black">
                 Baixar / Minha conta
               </Link>
             ) : (
@@ -104,7 +104,7 @@ export default function Header({ variant = 'full' }: HeaderProps): JSX.Element {
                 <Link href="/download" onClick={() => setMenuOpen(false)} className="rounded-lg border border-bg-border px-4 py-2 text-center text-sm text-gray-200">
                   Download
                 </Link>
-                <Link href="/criar-conta" onClick={() => setMenuOpen(false)} className="rounded-lg bg-brand-gradient px-4 py-2 text-center text-sm font-bold text-white">
+                <Link href="/criar-conta" onClick={() => setMenuOpen(false)} className="rounded-lg bg-brand-gradient px-4 py-2 text-center text-sm font-bold text-black">
                   Começar Grátis
                 </Link>
               </>

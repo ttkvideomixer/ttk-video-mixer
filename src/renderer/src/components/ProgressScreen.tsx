@@ -93,7 +93,7 @@ function ProgressScreen(): JSX.Element {
             </button>
           )}
           {isActive && generation.isPaused && (
-            <button onClick={resumeGeneration} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
+            <button onClick={resumeGeneration} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark">
               Continuar
             </button>
           )}
@@ -103,7 +103,7 @@ function ProgressScreen(): JSX.Element {
             </button>
           )}
           {!isActive && summary.errors > 0 && (
-            <button onClick={retryErrors} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
+            <button onClick={retryErrors} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark">
               Tentar Novamente os Erros
             </button>
           )}

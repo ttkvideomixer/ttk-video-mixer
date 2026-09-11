@@ -84,7 +84,7 @@ export default function AdminsPage(): JSX.Element {
             <label className="mb-1 block text-xs text-gray-400">Motivo</label>
             <input value={reason} onChange={(e) => setReason(e.target.value)} required minLength={3} className="w-full rounded-lg border border-bg-border bg-bg-soft px-3 py-2 text-sm text-white" />
           </div>
-          <button type="submit" disabled={busy} className="rounded-lg bg-brand-gradient px-5 py-2 text-sm font-bold text-white disabled:opacity-50">
+          <button type="submit" disabled={busy} className="rounded-lg bg-brand-gradient px-5 py-2 text-sm font-bold text-black disabled:opacity-50">
             {busy ? 'Aguarde...' : 'Promover'}
           </button>
         </form>

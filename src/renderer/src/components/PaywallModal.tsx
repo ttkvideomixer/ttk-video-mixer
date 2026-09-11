@@ -141,7 +141,7 @@ function PaywallModal(): JSX.Element {
             <button
               onClick={handleCardCheckout}
               disabled={busy || !cpfValid}
-              className="rounded-lg bg-brand py-2.5 text-sm font-bold uppercase tracking-wide text-white hover:bg-brand-dark disabled:opacity-50"
+              className="rounded-lg bg-brand py-2.5 text-sm font-bold uppercase tracking-wide text-black hover:bg-brand-dark disabled:opacity-50"
             >
               {status === 'creating' ? 'Aguarde...' : 'Assinar com Cartão'}
             </button>

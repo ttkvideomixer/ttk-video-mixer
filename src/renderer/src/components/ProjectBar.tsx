@@ -77,7 +77,7 @@ function ProjectBar(): JSX.Element {
               setSavedFlash(true)
               setTimeout(() => setSavedFlash(false), 1500)
             }}
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black hover:bg-brand-dark"
             title="Ctrl+S"
           >
             {savedFlash ? 'Salvo!' : 'Salvar Projeto'}

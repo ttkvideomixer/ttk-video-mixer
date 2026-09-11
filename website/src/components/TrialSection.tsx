@@ -23,7 +23,7 @@ export default function TrialSection(): JSX.Element {
 
         <Link
           href="/criar-conta"
-          className="mt-6 inline-block rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white shadow-glow hover:opacity-90"
+          className="mt-6 inline-block rounded-xl bg-brand-gradient px-8 py-3.5 text-sm font-extrabold uppercase tracking-wide text-black shadow-glow hover:opacity-90"
         >
           Criar Conta Grátis
         </Link>
