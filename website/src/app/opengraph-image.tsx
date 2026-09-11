@@ -16,10 +16,10 @@ export default function OpengraphImage(): ImageResponse {
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#000000',
-          backgroundImage: 'radial-gradient(circle at 50% 30%, rgba(37,244,238,0.3), transparent 60%)'
+          backgroundImage: 'radial-gradient(circle at 50% 30%, rgba(254,44,85,0.3), transparent 60%)'
         }}
       >
-        <div style={{ display: 'flex', fontSize: 40, fontWeight: 800, color: '#25f4ee', letterSpacing: 4 }}>
+        <div style={{ display: 'flex', fontSize: 40, fontWeight: 800, color: '#fe2c55', letterSpacing: 4 }}>
           TTK VIDEO MIXER
         </div>
         <div style={{ display: 'flex', fontSize: 64, fontWeight: 800, color: 'white', marginTop: 24, textAlign: 'center', maxWidth: 900 }}>

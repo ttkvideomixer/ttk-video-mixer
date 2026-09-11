@@ -12,7 +12,7 @@ body {
 }
 
 ::selection {
-  background-color: rgba(37, 244, 238, 0.35);
+  background-color: rgba(254, 44, 85, 0.35);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -27,7 +27,8 @@ body {
 }
 
 .gradient-text {
-  background-image: linear-gradient(135deg, #25f4ee 0%, #fe2c55 100%);
+  /* Rosa predomina; o ciano entra só como detalhe na ponta do degradê. */
+  background-image: linear-gradient(135deg, #fe2c55 0%, #fe2c55 70%, #25f4ee 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
