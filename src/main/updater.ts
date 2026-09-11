@@ -4,6 +4,8 @@ import { IpcChannels } from '@shared/ipcChannels'
 
 const CHECK_INTERVAL_MS = 4 * 60 * 60_000
 const FIRST_CHECK_DELAY_MS = 15_000
+/** Gives the renderer time to paint the "Atualizando..." screen before the window actually closes for the silent install. */
+const INSTALL_NOTICE_DELAY_MS = 1_800
 
 /**
  * Downloads updates silently in the background and applies them on the
@@ -29,8 +31,13 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
   let installing = false
 
   const install = (): void => {
+    if (installing) return
     installing = true
-    autoUpdater.quitAndInstall(true, true)
+    // The window is about to close (silently, no installer UI at all) and
+    // won't reopen until the update finishes applying — without this,
+    // closing the app for an update looks identical to it crashing.
+    mainWindow.webContents.send(IpcChannels.onUpdateInstalling)
+    setTimeout(() => autoUpdater.quitAndInstall(true, true), INSTALL_NOTICE_DELAY_MS)
   }
 
   autoUpdater.on('update-downloaded', (info) => {
@@ -41,7 +48,7 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
   ipcMain.handle(IpcChannels.restartAndUpdate, () => install())
 
   app.on('before-quit', (event) => {
-    if (updateReady && !installing) {
+    if (updateReady || installing) {
       event.preventDefault()
       install()
     }

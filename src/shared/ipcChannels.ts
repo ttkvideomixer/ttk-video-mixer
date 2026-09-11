@@ -40,6 +40,7 @@ export const IpcChannels = {
   onEntitlementChanged: 'event:entitlement-changed',
   onAuthHandoffComplete: 'event:auth-handoff-complete',
   onUpdateReady: 'event:update-ready',
+  onUpdateInstalling: 'event:update-installing',
   restartAndUpdate: 'app:restart-and-update',
 
   // Auth

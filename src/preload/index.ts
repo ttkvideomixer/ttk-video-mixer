@@ -67,6 +67,7 @@ const api = {
   onAuthHandoffComplete: (callback: (payload: { user: AuthUser | null; error?: string }) => void) =>
     subscribe(IpcChannels.onAuthHandoffComplete, callback),
   onUpdateReady: (callback: (payload: { version: string }) => void) => subscribe(IpcChannels.onUpdateReady, callback),
+  onUpdateInstalling: (callback: () => void) => subscribe(IpcChannels.onUpdateInstalling, callback),
   restartAndUpdate: (): Promise<void> => ipcRenderer.invoke(IpcChannels.restartAndUpdate),
 
   // Auth
