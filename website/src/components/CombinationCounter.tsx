@@ -17,11 +17,11 @@ export default function CombinationCounter(): JSX.Element {
     <Reveal className="px-5">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-3xl border border-bg-border bg-bg-card px-6 py-8 shadow-card sm:gap-6">
         <Block value={10} label="Ganchos" />
-        <span className="text-2xl text-brand-light">×</span>
+        <span className="text-2xl text-cyan">×</span>
         <Block value={10} label="Corpos" />
-        <span className="text-2xl text-brand-light">×</span>
+        <span className="text-2xl text-cyan">×</span>
         <Block value={10} label="CTAs" />
-        <span className="text-2xl text-brand-light">=</span>
+        <span className="text-2xl text-cyan">=</span>
         <Block value={1000} label="Variações" />
       </div>
     </Reveal>

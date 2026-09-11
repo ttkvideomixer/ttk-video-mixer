@@ -36,17 +36,17 @@ function CombinationCounter(): JSX.Element {
 
       <div className="mt-6 flex items-center justify-center gap-4 text-center text-sm text-gray-300">
         <Metric label="Ganchos" value={hooksCount} />
-        <span className="text-gray-600">×</span>
+        <span className="text-cyan">×</span>
         <Metric label="Corpos" value={bodiesCount} />
-        <span className="text-gray-600">×</span>
+        <span className="text-cyan">×</span>
         <Metric label="CTAs" value={ctasCount} />
         {multiplying && (
           <>
-            <span className="text-gray-600">×</span>
+            <span className="text-cyan">×</span>
             <Metric label="Textos" value={enabledHookTextsCount} />
           </>
         )}
-        <span className="text-gray-600">=</span>
+        <span className="text-cyan">=</span>
         <Metric label="Combinações" value={total} highlight />
       </div>
 

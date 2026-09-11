@@ -43,9 +43,15 @@ export default function Hero(): JSX.Element {
           </div>
 
           <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-gray-400">
-            <li>✓ Sem cartão para testar</li>
-            <li>✓ 27 vídeos grátis</li>
-            <li>✓ Processamento no seu computador</li>
+            <li>
+              <span className="text-cyan">✓</span> Sem cartão para testar
+            </li>
+            <li>
+              <span className="text-cyan">✓</span> 27 vídeos grátis
+            </li>
+            <li>
+              <span className="text-cyan">✓</span> Processamento no seu computador
+            </li>
           </ul>
         </div>
 

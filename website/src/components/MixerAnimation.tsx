@@ -40,9 +40,9 @@ export default function MixerAnimation(): JSX.Element {
           className="flex flex-col items-center gap-3"
         >
           <Chip label={combo.hook} />
-          <span className="text-xl text-brand-light">×</span>
+          <span className="text-xl text-cyan">×</span>
           <Chip label={combo.body} />
-          <span className="text-xl text-brand-light">×</span>
+          <span className="text-xl text-cyan">×</span>
           <Chip label={combo.cta} />
           <motion.span
             initial={{ opacity: 0 }}

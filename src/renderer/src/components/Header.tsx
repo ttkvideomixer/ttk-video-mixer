@@ -22,9 +22,15 @@ function Header(): JSX.Element {
   return (
     <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-bg-border bg-bg-card px-8 py-5">
       <div className="flex items-center gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-tiktok-gradient">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="black" />
+        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="absolute -translate-x-[3px] translate-y-[2px] text-cyan">
+            <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="currentColor" />
+          </svg>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="absolute translate-x-[3px] -translate-y-[2px] text-brand">
+            <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="currentColor" />
+          </svg>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="relative text-white">
+            <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="currentColor" />
           </svg>
         </span>
         {lastGeneratedFolder && (

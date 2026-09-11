@@ -21,9 +21,18 @@ interface HeaderProps {
 function Logo(): JSX.Element {
   return (
     <Link href="/" className="flex items-center gap-2">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-gradient">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="black" />
+      {/* "Glitch" duplicado ciano + rosa atrás do ícone — a mesma técnica de
+          dupla cor que faz a marca do TikTok ser reconhecível à distância,
+          sem copiar o ícone deles. */}
+      <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-black">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="absolute -translate-x-[3px] translate-y-[2px] text-cyan">
+          <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="currentColor" />
+        </svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="absolute translate-x-[3px] -translate-y-[2px] text-brand">
+          <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="currentColor" />
+        </svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="relative text-white">
+          <path d="M4 2.5v11l9-5.5-9-5.5Z" fill="currentColor" />
         </svg>
       </span>
       <span className="text-sm font-extrabold tracking-tight text-white">

@@ -22,7 +22,7 @@ function MixerMachineAnimation(): JSX.Element {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: i * 0.08, duration: 0.4 }}
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-bg-border bg-bg-soft text-xs font-bold text-gray-300"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-cyan/40 bg-bg-soft text-xs font-bold text-cyan"
           >
             {letter}
           </motion.span>
@@ -71,8 +71,8 @@ export default function HowItWorks(): JSX.Element {
         <div className="mt-12 grid gap-6 md:grid-cols-4">
           {STEPS.map((step, i) => (
             <Reveal key={step.n} delay={i * 0.08}>
-              <div className="h-full rounded-2xl border border-bg-border bg-bg-card p-5 transition hover:-translate-y-1 hover:border-brand/50">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-xs font-extrabold text-black">
+              <div className="h-full rounded-2xl border border-bg-border bg-bg-card p-5 transition hover:-translate-y-1 hover:border-cyan/50">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan text-xs font-extrabold text-black">
                   {step.n}
                 </span>
                 <h3 className="mt-4 text-sm font-bold text-white">{step.title}</h3>

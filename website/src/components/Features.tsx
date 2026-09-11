@@ -23,8 +23,8 @@ export default function Features(): JSX.Element {
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((feature, i) => (
             <Reveal key={feature.title} delay={i * 0.05}>
-              <div className="h-full rounded-2xl border border-bg-border bg-bg-card p-5 transition hover:-translate-y-1 hover:border-brand/50 hover:shadow-glow">
-                <feature.icon className="h-5 w-5 text-brand" />
+              <div className="h-full rounded-2xl border border-bg-border bg-bg-card p-5 transition hover:-translate-y-1 hover:border-cyan/50">
+                <feature.icon className="h-5 w-5 text-cyan" />
                 <h3 className="mt-3 text-sm font-bold text-white">{feature.title}</h3>
                 <p className="mt-2 text-xs text-gray-400">{feature.desc}</p>
               </div>
