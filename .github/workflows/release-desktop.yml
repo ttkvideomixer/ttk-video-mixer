@@ -81,14 +81,36 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       # needs: build-windows makes this run after the release already exists
-      # (created above) instead of racing it — this call just adds more files
-      # to that same release.
+      # (created above) instead of racing it — this just adds more files to
+      # that same release.
+      #
+      # NOT softprops/action-gh-release here (unlike the Windows job): the
+      # universal macOS build's .dmg is large enough (~200MB+, bundling both
+      # x64 and arm64 Electron runtimes) that its upload has repeatedly
+      # failed ("Error saving asset" / "Headers Timeout" / a transient
+      # GitHub 500 page) across multiple real release attempts, while the
+      # smaller .zip/.yml alongside it succeeded every time — a one-shot
+      # action with no retry turns a transient upload hiccup into a fully
+      # failed job. `gh release upload` per-file with a retry loop survives
+      # that; `--clobber` makes re-running this step after a partial
+      # success safe (already-uploaded files just get overwritten with the
+      # same bytes, not duplicated).
       - name: Publish GitHub Release (macOS assets)
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: false
-          files: |
-            release/TTK-Video-Mixer-*.dmg
-            release/TTK-Video-Mixer-*.zip
-            release/latest-mac.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for f in release/TTK-Video-Mixer-*.dmg release/TTK-Video-Mixer-*.zip release/latest-mac.yml; do
+            echo "Uploading $f..."
+            for attempt in 1 2 3 4 5; do
+              if gh release upload "${{ github.ref_name }}" "$f" --clobber; then
+                echo "Uploaded $f"
+                break
+              fi
+              if [ "$attempt" = 5 ]; then
+                echo "Failed to upload $f after 5 attempts"
+                exit 1
+              fi
+              echo "Attempt $attempt failed, retrying in 15s..."
+              sleep 15
+            done
+          done
