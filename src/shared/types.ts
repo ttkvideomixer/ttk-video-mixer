@@ -28,6 +28,24 @@ export type FpsPreset = 'original' | '30' | '60'
 
 export type FramingMode = 'contain' | 'cover'
 
+/**
+ * Curated subset of ffmpeg's native `xfade` transition styles — used both
+ * for the main Gancho/Corpo/CTA joins (as 'crossfade-style') and for the
+ * internal joins the Beat Cut feature creates between shuffled chunks.
+ */
+export type BeatTransitionStyle =
+  | 'fade'
+  | 'wipeleft'
+  | 'wiperight'
+  | 'slideup'
+  | 'slidedown'
+  | 'circleopen'
+  | 'circleclose'
+  | 'pixelize'
+  | 'zoomin'
+  | 'dissolve'
+  | 'radial'
+
 export type TransitionType = 'cut' | 'fade' | 'crossfade'
 
 export type TransitionDuration = 0.1 | 0.2 | 0.3 | 0.5
@@ -37,6 +55,8 @@ export interface ExportSettings {
   fps: FpsPreset
   framing: FramingMode
   transition: TransitionType
+  /** Which `xfade` visual style is used when transition === 'crossfade'. Ignored for 'cut'/'fade'. */
+  crossfadeStyle: BeatTransitionStyle
   transitionDuration: TransitionDuration
   concurrency: 1 | 2 | 3 | 4
   overwriteExisting: boolean
@@ -88,6 +108,29 @@ export interface AudioSettings {
   fullTracks: AudioFile[]
 }
 
+/** Detected tempo of one audio file — a constant-tempo beat grid is `offsetSeconds + n*(60/bpm)`. */
+export interface BeatGrid {
+  bpm: number
+  offsetSeconds: number
+}
+
+/**
+ * "Beat Cut" — splits a segment's footage into chunks (beat-aligned when a
+ * track is attached to that category, or evenly spaced otherwise), shuffles
+ * their order, and joins them with a randomly-picked transition per cut —
+ * a different unique remix per generated video. Independent per category,
+ * same on/off + "apply to all" shortcut shape as AudioSettings' mute flags.
+ */
+export interface BeatCutSettings {
+  hookEnabled: boolean
+  bodyEnabled: boolean
+  ctaEnabled: boolean
+  /** Number of even chunks to use when the category has no attached track to derive a beat grid from. */
+  fallbackChunkCount: number
+  /** Transition styles eligible to be randomly picked for each internal cut. */
+  allowedTransitionStyles: BeatTransitionStyle[]
+}
+
 export type JobStatus = 'pending' | 'processing' | 'done' | 'error' | 'skipped' | 'canceled'
 
 export interface Combination {
@@ -104,6 +147,15 @@ export interface HookText {
   order: number
   enabled: boolean
 }
+
+/**
+ * 'perSegment' (default): hookTexts overlay only during the hook, visualCta
+ * only during the CTA — today's behavior. 'fullSpan': the SAME hookTexts
+ * pool is instead burned in as ONE continuous overlay from the start of the
+ * hook to the end of the CTA, and visualCta is ignored (mutually exclusive
+ * "instead of", not additive).
+ */
+export type TextMode = 'perSegment' | 'fullSpan'
 
 /** Position/scale of a text overlay, normalized (0..1) so it works at any output resolution. */
 export interface OverlayTransform {
@@ -195,6 +247,19 @@ export interface GenerationJob {
   bodyAudioPath: string | null
   ctaAudioPath: string | null
   fullAudioPath: string | null
+  textMode: TextMode
+  beatCutHook: boolean
+  beatCutBody: boolean
+  beatCutCta: boolean
+  /** Seeds this job's chunk-shuffle + transition-style picks — unique per job so every generated video gets a different remix. */
+  beatCutSeed: number
+  beatCutFallbackChunkCount: number
+  beatCutAllowedTransitions: BeatTransitionStyle[]
+  /** Resolved from whichever track this job actually got assigned (hookAudioPath/etc) — null when that category has no track, or beat detection hasn't run for it. */
+  hookBeatGrid: BeatGrid | null
+  bodyBeatGrid: BeatGrid | null
+  ctaBeatGrid: BeatGrid | null
+  fullBeatGrid: BeatGrid | null
   variation: VariationParameters
   variationSignature: string
   sha256: string | null
@@ -232,6 +297,8 @@ export interface Project {
   preview: PreviewState
   frameSettings: FrameSettings
   audioSettings: AudioSettings
+  beatCutSettings: BeatCutSettings
+  textMode: TextMode
   createdAt: number
   updatedAt: number
 }
@@ -271,6 +338,17 @@ export interface RenderJobInput {
   bodyAudioPath: string | null
   ctaAudioPath: string | null
   fullAudioPath: string | null
+  textMode: TextMode
+  beatCutHook: boolean
+  beatCutBody: boolean
+  beatCutCta: boolean
+  beatCutSeed: number
+  beatCutFallbackChunkCount: number
+  beatCutAllowedTransitions: BeatTransitionStyle[]
+  hookBeatGrid: BeatGrid | null
+  bodyBeatGrid: BeatGrid | null
+  ctaBeatGrid: BeatGrid | null
+  fullBeatGrid: BeatGrid | null
   variation: VariationParameters
   overlays: PreviewOverlaysState
   silenceTrimEnabled: boolean

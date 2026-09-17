@@ -144,7 +144,20 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
         bodyTrackPath: input.bodyAudioPath,
         ctaTrackPath: input.ctaAudioPath,
         fullTrackPath: input.fullAudioPath
-      }
+      },
+      beatCut: {
+        hookEnabled: input.beatCutHook,
+        bodyEnabled: input.beatCutBody,
+        ctaEnabled: input.beatCutCta,
+        fallbackChunkCount: input.beatCutFallbackChunkCount,
+        allowedTransitionStyles: input.beatCutAllowedTransitions,
+        seed: input.beatCutSeed,
+        hookBeatGrid: input.hookBeatGrid,
+        bodyBeatGrid: input.bodyBeatGrid,
+        ctaBeatGrid: input.ctaBeatGrid,
+        fullBeatGrid: input.fullBeatGrid
+      },
+      textMode: input.textMode
     }
 
     const mainInputCount = 3

@@ -56,6 +56,8 @@ function VideoGroupCard({ category }: Props): JSX.Element {
   const hookTextsCount = useAppStore((s) => s.hookTexts.filter((t) => t.enabled && t.text.trim().length > 0).length)
   const visualCtaEnabled = useAppStore((s) => s.visualCta.enabled)
   const setVisualCtaEnabled = useAppStore((s) => s.setVisualCtaEnabled)
+  const textMode = useAppStore((s) => s.textMode)
+  const setTextMode = useAppStore((s) => s.setTextMode)
 
   const [dragActive, setDragActive] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -121,27 +123,58 @@ function VideoGroupCard({ category }: Props): JSX.Element {
       </div>
 
       {category === 'hook' && (
-        <button
-          onClick={openHookTextsModal}
-          disabled={videos.length === 0}
-          title={videos.length === 0 ? 'Adicione pelo menos um vídeo de Gancho primeiro.' : undefined}
-          className="self-start text-xs text-gray-500 underline decoration-dotted hover:text-brand-light disabled:cursor-not-allowed disabled:text-gray-700 disabled:no-underline"
-        >
-          + Texto de Gancho{hookTextsCount > 0 ? ` (${hookTextsCount})` : ''}
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={openHookTextsModal}
+            disabled={videos.length === 0}
+            title={videos.length === 0 ? 'Adicione pelo menos um vídeo de Gancho primeiro.' : undefined}
+            className="self-start text-xs text-gray-500 underline decoration-dotted hover:text-brand-light disabled:cursor-not-allowed disabled:text-gray-700 disabled:no-underline"
+          >
+            {textMode === 'fullSpan' ? '+ Texto Único' : '+ Texto de Gancho'}
+            {hookTextsCount > 0 ? ` (${hookTextsCount})` : ''}
+          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setTextMode('perSegment')}
+              className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                textMode === 'perSegment'
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-bg-border bg-bg-soft text-gray-400 hover:bg-bg-border'
+              }`}
+            >
+              Texto separado (Gancho + CTA)
+            </button>
+            <button
+              onClick={() => setTextMode('fullSpan')}
+              className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                textMode === 'fullSpan'
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-bg-border bg-bg-soft text-gray-400 hover:bg-bg-border'
+              }`}
+            >
+              Texto único (Gancho até CTA)
+            </button>
+          </div>
+        </div>
       )}
 
-      {category === 'cta' && (
-        <label className="flex items-center gap-2 text-xs text-gray-400">
-          <input
-            type="checkbox"
-            checked={visualCtaEnabled}
-            onChange={(e) => setVisualCtaEnabled(e.target.checked)}
-            className="h-4 w-4 accent-brand"
-          />
-          CTA Visual Automático
-        </label>
-      )}
+      {category === 'cta' &&
+        (textMode === 'fullSpan' ? (
+          <p className="text-[11px] text-gray-600">
+            Modo &ldquo;Texto único&rdquo; ativo — o texto do Gancho cobre até o fim do CTA, então o CTA Visual
+            Automático fica desativado.
+          </p>
+        ) : (
+          <label className="flex items-center gap-2 text-xs text-gray-400">
+            <input
+              type="checkbox"
+              checked={visualCtaEnabled}
+              onChange={(e) => setVisualCtaEnabled(e.target.checked)}
+              className="h-4 w-4 accent-brand"
+            />
+            CTA Visual Automático
+          </label>
+        ))}
 
       {videos.length === 0 ? (
         <div className="flex h-28 flex-col items-center justify-center rounded-xl border border-dashed border-bg-border text-center text-xs text-gray-500">

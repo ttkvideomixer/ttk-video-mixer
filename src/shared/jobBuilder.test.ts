@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildGenerationJobs, type BuildJobsParams } from './jobBuilder'
 import type { CreativeVariationSettings, VideoFile } from './types'
-import { DEFAULT_AUDIO_SETTINGS, DEFAULT_CREATIVE_VARIATION_SETTINGS } from './defaults'
+import { DEFAULT_AUDIO_SETTINGS, DEFAULT_BEAT_CUT_SETTINGS, DEFAULT_CREATIVE_VARIATION_SETTINGS, DEFAULT_TEXT_MODE } from './defaults'
 
 function makeVideos(category: VideoFile['category'], count: number): VideoFile[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -33,7 +33,9 @@ function baseParams(): BuildJobsParams {
     creativeVariation: { ...DEFAULT_CREATIVE_VARIATION_SETTINGS, enabled: false },
     projectSeed: 42,
     frameFilePaths: [],
-    audioSettings: DEFAULT_AUDIO_SETTINGS
+    audioSettings: DEFAULT_AUDIO_SETTINGS,
+    beatCutSettings: DEFAULT_BEAT_CUT_SETTINGS,
+    textMode: DEFAULT_TEXT_MODE
   }
 }
 
@@ -153,6 +155,28 @@ describe('buildGenerationJobs', () => {
 
     const counts = tracks.map((t) => jobs.filter((j) => j.bodyAudioPath === t.path).length)
     expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1)
+  })
+
+  it('copies beatCutSettings flags onto every job and gives each job a unique, deterministic seed', () => {
+    const params = baseParams()
+    params.beatCutSettings = { ...DEFAULT_BEAT_CUT_SETTINGS, hookEnabled: true, ctaEnabled: true, fallbackChunkCount: 6 }
+    const jobs = buildGenerationJobs(params)
+
+    expect(jobs.every((j) => j.beatCutHook === true && j.beatCutBody === false && j.beatCutCta === true)).toBe(true)
+    expect(jobs.every((j) => j.beatCutFallbackChunkCount === 6)).toBe(true)
+    expect(new Set(jobs.map((j) => j.beatCutSeed)).size).toBe(jobs.length)
+
+    const again = buildGenerationJobs(params)
+    expect(again.map((j) => j.beatCutSeed)).toEqual(jobs.map((j) => j.beatCutSeed))
+  })
+
+  it('forces visualCtaPhrase to null in fullSpan text mode even when visualCtaEnabled is true', () => {
+    const params = baseParams()
+    params.visualCtaEnabled = true
+    params.textMode = 'fullSpan'
+    const jobs = buildGenerationJobs(params)
+    expect(jobs.every((j) => j.visualCtaPhrase === null)).toBe(true)
+    expect(jobs.every((j) => j.textMode === 'fullSpan')).toBe(true)
   })
 
   it('copies mute flags from audioSettings onto every job unchanged', () => {

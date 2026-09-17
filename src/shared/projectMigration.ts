@@ -1,6 +1,7 @@
 import type { Project } from './types'
 import {
   DEFAULT_AUDIO_SETTINGS,
+  DEFAULT_BEAT_CUT_SETTINGS,
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
@@ -8,6 +9,7 @@ import {
   DEFAULT_OVERLAYS_STATE,
   DEFAULT_PREVIEW_STATE,
   DEFAULT_SILENCE_TRIM_SETTINGS,
+  DEFAULT_TEXT_MODE,
   DEFAULT_VISUAL_CTA_SETTINGS,
   PROJECT_SCHEMA_VERSION
 } from './defaults'
@@ -56,6 +58,12 @@ export function migrateProject(raw: Record<string, unknown>): Project {
       ctaTracks: p.audioSettings?.ctaTracks ?? [],
       fullTracks: p.audioSettings?.fullTracks ?? []
     },
+    beatCutSettings: {
+      ...DEFAULT_BEAT_CUT_SETTINGS,
+      ...p.beatCutSettings,
+      allowedTransitionStyles: p.beatCutSettings?.allowedTransitionStyles ?? DEFAULT_BEAT_CUT_SETTINGS.allowedTransitionStyles
+    },
+    textMode: p.textMode ?? DEFAULT_TEXT_MODE,
     createdAt: p.createdAt ?? Date.now(),
     updatedAt: p.updatedAt ?? Date.now()
   }

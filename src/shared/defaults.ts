@@ -1,5 +1,7 @@
 import type {
   AudioSettings,
+  BeatCutSettings,
+  BeatTransitionStyle,
   CombinationSelectionSettings,
   CreativeVariationSettings,
   ExportSettings,
@@ -7,6 +9,7 @@ import type {
   PreviewOverlaysState,
   PreviewState,
   SilenceTrimSettings,
+  TextMode,
   VariationParameters,
   VisualCtaSettings
 } from './types'
@@ -18,6 +21,7 @@ export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
   fps: '30',
   framing: 'contain',
   transition: 'cut',
+  crossfadeStyle: 'fade',
   transitionDuration: 0.2,
   concurrency: 2,
   overwriteExisting: false,
@@ -102,6 +106,31 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   ctaTracks: [],
   fullTracks: []
 }
+
+/** Every native ffmpeg `xfade` style this app exposes — curated for visual clarity at short (beat-length) durations. */
+export const BEAT_TRANSITION_STYLES: BeatTransitionStyle[] = [
+  'fade',
+  'wipeleft',
+  'wiperight',
+  'slideup',
+  'slidedown',
+  'circleopen',
+  'circleclose',
+  'pixelize',
+  'zoomin',
+  'dissolve',
+  'radial'
+]
+
+export const DEFAULT_BEAT_CUT_SETTINGS: BeatCutSettings = {
+  hookEnabled: false,
+  bodyEnabled: false,
+  ctaEnabled: false,
+  fallbackChunkCount: 4,
+  allowedTransitionStyles: [...BEAT_TRANSITION_STYLES]
+}
+
+export const DEFAULT_TEXT_MODE: TextMode = 'perSegment'
 
 export const MAX_VARIATION_RETRY_ATTEMPTS = 5
 

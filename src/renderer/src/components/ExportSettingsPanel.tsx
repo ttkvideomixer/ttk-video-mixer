@@ -1,6 +1,7 @@
 import { useAppStore } from '../state/useAppStore'
-import type { FpsPreset, ResolutionPreset, TransitionDuration, TransitionType } from '@shared/types'
+import type { BeatTransitionStyle, FpsPreset, ResolutionPreset, TransitionDuration, TransitionType } from '@shared/types'
 import { RESOLUTION_LABELS } from '@shared/resolutions'
+import { BEAT_TRANSITION_STYLES } from '@shared/defaults'
 
 const RESOLUTION_OPTIONS: ResolutionPreset[] = [
   '1080x1920',
@@ -13,6 +14,20 @@ const RESOLUTION_OPTIONS: ResolutionPreset[] = [
 ]
 
 const TRANSITION_DURATIONS: TransitionDuration[] = [0.1, 0.2, 0.3, 0.5]
+
+const TRANSITION_STYLE_LABELS: Record<BeatTransitionStyle, string> = {
+  fade: 'Fade clássico',
+  wipeleft: 'Wipe para a esquerda',
+  wiperight: 'Wipe para a direita',
+  slideup: 'Deslizar para cima',
+  slidedown: 'Deslizar para baixo',
+  circleopen: 'Abrir em círculo',
+  circleclose: 'Fechar em círculo',
+  pixelize: 'Pixelizar',
+  zoomin: 'Zoom',
+  dissolve: 'Dissolver',
+  radial: 'Radial'
+}
 
 function ExportSettingsPanel(): JSX.Element {
   const prefix = useAppStore((s) => s.prefix)
@@ -100,6 +115,22 @@ function ExportSettingsPanel(): JSX.Element {
           </select>
         </Field>
       </div>
+
+      {settings.transition === 'crossfade' && (
+        <Field label="Estilo do crossfade">
+          <select
+            value={settings.crossfadeStyle}
+            onChange={(e) => setExportSettings({ crossfadeStyle: e.target.value as BeatTransitionStyle })}
+            className="w-full rounded-lg border border-bg-border bg-bg-soft px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          >
+            {BEAT_TRANSITION_STYLES.map((style) => (
+              <option key={style} value={style}>
+                {TRANSITION_STYLE_LABELS[style]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <Field label="Processamentos simultâneos">
         <div className="flex gap-2">

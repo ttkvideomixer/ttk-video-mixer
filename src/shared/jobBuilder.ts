@@ -1,4 +1,13 @@
-import type { AudioSettings, CombinationSelectionSettings, CreativeVariationSettings, GenerationJob, HookText, VideoFile } from './types'
+import type {
+  AudioSettings,
+  BeatCutSettings,
+  CombinationSelectionSettings,
+  CreativeVariationSettings,
+  GenerationJob,
+  HookText,
+  TextMode,
+  VideoFile
+} from './types'
 import { generateCombinations, selectCombinations } from './combinations'
 import { buildCombinationLabel, buildOutputFileName } from './naming'
 import { joinWindowsPath } from './pathUtils'
@@ -21,6 +30,8 @@ export interface BuildJobsParams {
   /** Molduras: pass a non-empty list only when the feature is enabled AND the export resolution is frame-eligible (9:16) — see FRAME_ELIGIBLE_RESOLUTION. */
   frameFilePaths: string[]
   audioSettings: AudioSettings
+  beatCutSettings: BeatCutSettings
+  textMode: TextMode
 }
 
 interface ExpandedEntry {
@@ -51,7 +62,9 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
     creativeVariation,
     projectSeed,
     frameFilePaths,
-    audioSettings
+    audioSettings,
+    beatCutSettings,
+    textMode
   } = params
 
   const all = generateCombinations(hooks.length, bodies.length, ctas.length)
@@ -86,7 +99,9 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
         )
       : null
 
-  const distributedCtaPhrases = visualCtaEnabled ? distributeCtaPhrases(total, projectSeed + 2003) : null
+  // Full-span text mode replaces the separate hook+CTA texts with one continuous
+  // overlay (see textMode below) — the auto CTA phrase has nothing to pair with there.
+  const distributedCtaPhrases = visualCtaEnabled && textMode !== 'fullSpan' ? distributeCtaPhrases(total, projectSeed + 2003) : null
   const distributedFramePaths = frameFilePaths.length > 0 ? distributeEvenly(frameFilePaths, total, projectSeed + 4007) : null
   const variationSequence = buildVariationSequence(creativeVariation, total, projectSeed + 3001)
 
@@ -193,6 +208,20 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       bodyAudioPath,
       ctaAudioPath,
       fullAudioPath,
+      textMode,
+      beatCutHook: beatCutSettings.hookEnabled,
+      beatCutBody: beatCutSettings.bodyEnabled,
+      beatCutCta: beatCutSettings.ctaEnabled,
+      // Derived straight from the job index — deterministic and unique per job
+      // without needing its own distribution pass; the beat grid itself (which
+      // needs real file I/O) is resolved later, in the renderer, per-job.
+      beatCutSeed: projectSeed + 9013 + i,
+      beatCutFallbackChunkCount: beatCutSettings.fallbackChunkCount,
+      beatCutAllowedTransitions: beatCutSettings.allowedTransitionStyles,
+      hookBeatGrid: null,
+      bodyBeatGrid: null,
+      ctaBeatGrid: null,
+      fullBeatGrid: null,
       variation,
       variationSignature,
       sha256: null,

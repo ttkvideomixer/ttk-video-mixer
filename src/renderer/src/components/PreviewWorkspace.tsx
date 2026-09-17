@@ -32,7 +32,9 @@ function PreviewWorkspace(): JSX.Element {
   const updateOverlay = useAppStore((s) => s.updateOverlay)
   const setShowSafeZones = useAppStore((s) => s.setShowSafeZones)
   const hookTexts = useAppStore((s) => s.hookTexts)
-  const visualCtaEnabled = useAppStore((s) => s.visualCta.enabled)
+  const visualCtaEnabledSetting = useAppStore((s) => s.visualCta.enabled)
+  const textMode = useAppStore((s) => s.textMode)
+  const visualCtaEnabled = visualCtaEnabledSetting && textMode !== 'fullSpan'
   const previewExampleVariation = useAppStore((s) => s.previewExampleVariation)
   const previewExampleCtaPhrase = useAppStore((s) => s.previewExampleCtaPhrase)
   const approvePreview = useAppStore((s) => s.approvePreview)
@@ -199,7 +201,7 @@ function PreviewWorkspace(): JSX.Element {
             />
             {overlays.showSafeZones && <SafeZoneGuides />}
 
-            {hookTextContent && activeSegment === 'hook' && (
+            {hookTextContent && (textMode === 'fullSpan' || activeSegment === 'hook') && (
               <PreviewOverlayBox
                 overlay={overlays.hookText}
                 content={hookTextContent}
@@ -251,6 +253,7 @@ function PreviewWorkspace(): JSX.Element {
             bodyFraction={rawBodyDuration / rawTotal}
             ctaFraction={rawCtaDuration / rawTotal}
             hasHookText={!!hookTextContent}
+            fullSpanText={textMode === 'fullSpan'}
             hasVisualCta={visualCtaEnabled}
             playheadPercent={playheadPercent}
             onSeek={seekTo}
@@ -275,6 +278,7 @@ function Timeline({
   bodyFraction,
   ctaFraction,
   hasHookText,
+  fullSpanText,
   hasVisualCta,
   playheadPercent,
   onSeek
@@ -283,6 +287,7 @@ function Timeline({
   bodyFraction: number
   ctaFraction: number
   hasHookText: boolean
+  fullSpanText: boolean
   hasVisualCta: boolean
   playheadPercent: number
   onSeek: (fraction: number) => void
@@ -337,7 +342,7 @@ function Timeline({
           </div>
         </TimelineRow>
 
-        <TimelineRow label="Texto do Gancho">
+        <TimelineRow label={fullSpanText ? 'Texto Único' : 'Texto do Gancho'}>
           {/* No onClick/onPointerDown of its own — this used to be a button
               that unconditionally jumped to a fixed point (fraction 0)
               whenever clicked, stopping the drag from the outer wrapper
@@ -347,7 +352,12 @@ function Timeline({
               visual row and the outer wrapper's own pointer handlers scrub
               it exactly like the Vídeo row above. */}
           <div title="Texto do gancho" className="h-3 w-full rounded bg-bg-soft">
-            {hasHookText && <div style={{ width: `${hookFraction * 100}%` }} className="h-full rounded bg-brand-light" />}
+            {hasHookText && (
+              <div
+                style={{ width: `${(fullSpanText ? 1 : hookFraction) * 100}%` }}
+                className="h-full rounded bg-brand-light"
+              />
+            )}
           </div>
         </TimelineRow>
 

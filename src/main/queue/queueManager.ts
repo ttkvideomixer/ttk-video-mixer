@@ -215,6 +215,17 @@ export class GenerationQueue {
       bodyAudioPath: job.bodyAudioPath,
       ctaAudioPath: job.ctaAudioPath,
       fullAudioPath: job.fullAudioPath,
+      textMode: job.textMode,
+      beatCutHook: job.beatCutHook,
+      beatCutBody: job.beatCutBody,
+      beatCutCta: job.beatCutCta,
+      beatCutSeed: job.beatCutSeed,
+      beatCutFallbackChunkCount: job.beatCutFallbackChunkCount,
+      beatCutAllowedTransitions: job.beatCutAllowedTransitions,
+      hookBeatGrid: job.hookBeatGrid,
+      bodyBeatGrid: job.bodyBeatGrid,
+      ctaBeatGrid: job.ctaBeatGrid,
+      fullBeatGrid: job.fullBeatGrid,
       variation: job.variation
     }
   }

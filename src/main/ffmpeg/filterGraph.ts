@@ -1,7 +1,8 @@
-import type { ExportSettings, OverlayTransform, VariationParameters } from '@shared/types'
+import type { BeatGrid, BeatTransitionStyle, ExportSettings, OverlayTransform, TextMode, VariationParameters } from '@shared/types'
 import { RESOLUTION_MAP } from '@shared/resolutions'
 import { NEUTRAL_VARIATION_PARAMETERS } from '@shared/defaults'
 import { fitTextToWidth, LINE_HEIGHT_MULTIPLIER } from '@shared/textWrap'
+import { buildChunkPlan, prefixSums, resolveBeatBoundaries, type ChunkPlan } from '@shared/beatCut'
 import { escapeFfmpegFilterPath } from './ffmpegEscape'
 
 export interface SegmentInfo {
@@ -45,6 +46,29 @@ export interface AudioExtras {
   fullTrackPath: string | null
 }
 
+/**
+ * Splits a segment's OWN footage into chunks (beat-aligned when a track is
+ * attached, evenly spaced otherwise), shuffles their playback order, and
+ * joins them with a randomly-picked `xfade`/`acrossfade` transition per cut
+ * — a different remix per generated video. Independent per category, off by
+ * default. `seed` is per-job (see GenerationJob.beatCutSeed) so every job
+ * gets its own unique shuffle/transition picks.
+ */
+export interface BeatCutExtras {
+  hookEnabled: boolean
+  bodyEnabled: boolean
+  ctaEnabled: boolean
+  fallbackChunkCount: number
+  allowedTransitionStyles: BeatTransitionStyle[]
+  seed: number
+  /** Resolved from whichever track this job's category got assigned — null when that category has no track. */
+  hookBeatGrid: BeatGrid | null
+  bodyBeatGrid: BeatGrid | null
+  ctaBeatGrid: BeatGrid | null
+  /** Falls back to this (whole-video) grid for a category with no track of its own but a full-span one attached — the most common intended use. */
+  fullBeatGrid: BeatGrid | null
+}
+
 export interface RenderExtras {
   variation: VariationParameters
   hookText: ResolvedTextOverlay | null
@@ -53,6 +77,9 @@ export interface RenderExtras {
   /** Moldura: absolute path to a transparent-center PNG overlaid on top of the WHOLE finished video (all 3 segments), full duration. */
   frameOverlayPath: string | null
   audio: AudioExtras
+  beatCut: BeatCutExtras
+  /** 'fullSpan': hookText is burned in as ONE continuous overlay covering the whole output instead of just the hook segment, and visualCta is ignored entirely. */
+  textMode: TextMode
 }
 
 export interface FilterGraphResult {
@@ -77,7 +104,20 @@ const NO_EXTRAS: RenderExtras = {
     bodyTrackPath: null,
     ctaTrackPath: null,
     fullTrackPath: null
-  }
+  },
+  beatCut: {
+    hookEnabled: false,
+    bodyEnabled: false,
+    ctaEnabled: false,
+    fallbackChunkCount: 4,
+    allowedTransitionStyles: [],
+    seed: 0,
+    hookBeatGrid: null,
+    bodyBeatGrid: null,
+    ctaBeatGrid: null,
+    fullBeatGrid: null
+  },
+  textMode: 'perSegment'
 }
 
 export function resolveTargetSize(settings: ExportSettings, segments: SegmentInfo[]): { width: number; height: number } {
@@ -208,6 +248,9 @@ export function buildFilterGraph(
   const filterLines: string[] = []
   let nextInputIndex = mainInputCount
 
+  const segmentDurations = segments.map((s) => computeEffectiveDuration(s, variation))
+  const offsetsBeforeSegment = prefixSums(segmentDurations)
+
   segments.forEach((segment, i) => {
     const vLabel = `v${i}`
     const preStages: string[] = []
@@ -228,16 +271,48 @@ export function buildFilterGraph(
 
     const isHookSegment = i === 0
     const isCtaSegment = i === 2
-    const textOverlay = isHookSegment ? extras.hookText : isCtaSegment ? extras.visualCta : null
+    const fullSpanText = extras.textMode === 'fullSpan'
+    const textOverlay = !fullSpanText && isHookSegment ? extras.hookText : !fullSpanText && isCtaSegment ? extras.visualCta : null
+
+    const segmentDuration = segmentDurations[i]
 
     if (textOverlay) {
-      const effectiveDuration = computeEffectiveDuration(segment, variation)
-      const enableExpr = isHookSegment ? buildHookTextTimingExpr(effectiveDuration) : null
+      const enableExpr = isHookSegment ? buildHookTextTimingExpr(segmentDuration) : null
       postStages.push(buildDrawTextStage(textOverlay, extras.fontFilePath, height, enableExpr))
     }
 
-    const chain = [...preStages, scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages].join(',')
-    filterLines.push(`[${i}:v]${chain}${fpsFilter}[${vLabel}]`)
+    // Beat Cut plan for this segment (null = feature off, or fewer than 2
+    // chunks resolved — either way, nothing to shuffle, fall through to the
+    // exact original single-chain path below so the output stays
+    // byte-for-byte identical to before this feature existed).
+    const categoryEnabled = i === 0 ? extras.beatCut.hookEnabled : i === 1 ? extras.beatCut.bodyEnabled : extras.beatCut.ctaEnabled
+    let plan: ChunkPlan | null = null
+    if (categoryEnabled) {
+      const categoryGrid = i === 0 ? extras.beatCut.hookBeatGrid : i === 1 ? extras.beatCut.bodyBeatGrid : extras.beatCut.ctaBeatGrid
+      const usingFullGrid = !categoryGrid && !!extras.beatCut.fullBeatGrid
+      const grid = categoryGrid ?? extras.beatCut.fullBeatGrid
+      const cumulativeOffset = usingFullGrid ? offsetsBeforeSegment[i] : 0
+      const boundaries = resolveBeatBoundaries(grid, extras.beatCut.fallbackChunkCount, segmentDuration, cumulativeOffset)
+      plan = buildChunkPlan(boundaries, extras.beatCut.seed + i * 13, extras.beatCut.allowedTransitionStyles)
+    }
+
+    let finalVideoLabel: string
+    if (plan) {
+      let videoPreLabel = `${i}:v`
+      if (preStages.length > 0) {
+        const preLabel = `pre${i}`
+        filterLines.push(`[${i}:v]${preStages.join(',')}[${preLabel}]`)
+        videoPreLabel = preLabel
+      }
+      const remix = applyBeatCutVideoRemix(videoPreLabel, plan, i)
+      filterLines.push(...remix.filterLines)
+      finalVideoLabel = remix.videoLabel
+    } else {
+      finalVideoLabel = `${i}:v`
+    }
+
+    const chainParts = plan ? [scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages] : [...preStages, scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages]
+    filterLines.push(`[${finalVideoLabel}]${chainParts.join(',')}${fpsFilter}[${vLabel}]`)
     videoLabels.push(vLabel)
 
     // Which per-category mute flag / attached track applies to this segment
@@ -245,7 +320,6 @@ export function buildFilterGraph(
     // isHookSegment/isCtaSegment above.
     const muted = i === 0 ? extras.audio.muteHook : i === 1 ? extras.audio.muteBody : extras.audio.muteCta
     const trackPath = i === 0 ? extras.audio.hookTrackPath : i === 1 ? extras.audio.bodyTrackPath : extras.audio.ctaTrackPath
-    const segmentDuration = computeEffectiveDuration(segment, variation)
 
     const aLabel = `a${i}`
     // Collects every audio source that should be audible during this
@@ -256,12 +330,19 @@ export function buildFilterGraph(
     const mixLabels: string[] = []
 
     if (segment.hasAudio && !muted) {
-      const origLabel = `aOrig${i}`
+      let origLabel = `aOrig${i}`
       const audioPre = hasTrim ? `atrim=start=${segment.trimStartSeconds.toFixed(3)}:end=${trimEnd.toFixed(3)},asetpts=PTS-STARTPTS,` : ''
       const audioSpeed = variation.speed !== 1 ? `atempo=${variation.speed.toFixed(3)},` : ''
       filterLines.push(
         `[${i}:a]${audioPre}${audioSpeed}aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[${origLabel}]`
       )
+      // Same plan as the video side (same boundaries/order/transitions) so the
+      // shuffled audio always stays sample-accurate in sync with the video.
+      if (plan) {
+        const remixA = applyBeatCutAudioRemix(origLabel, plan, i)
+        filterLines.push(...remixA.filterLines)
+        origLabel = remixA.audioLabel
+      }
       mixLabels.push(origLabel)
     }
 
@@ -295,7 +376,7 @@ export function buildFilterGraph(
 
   let result: FilterGraphResult
   if (settings.transition === 'crossfade') {
-    result = buildCrossfadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation)
+    result = buildCrossfadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation, settings.crossfadeStyle)
   } else if (settings.transition === 'fade') {
     result = buildFadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation)
   } else {
@@ -326,7 +407,105 @@ export function buildFilterGraph(
     nextInputIndex++
   }
 
+  if (extras.textMode === 'fullSpan' && extras.hookText) {
+    result = applyFullTextOverlay(result, extras.hookText, extras.fontFilePath, height)
+  }
+
   return result
+}
+
+/** Never let an xfade/acrossfade join eat more than ~30% of either neighboring chunk — chunks can be as short as one beat interval. */
+function clampTransitionDuration(a: number, b: number): number {
+  return Math.min(0.5, Math.max(0.05, Math.min(a, b) * 0.3))
+}
+
+/**
+ * Slices `inLabel` (video) into `plan.boundaries`-defined chunks (in their
+ * ORIGINAL source-time order) and re-joins them via `xfade` in `plan.order`
+ * — the shuffled playback order — using `plan.transitions[j]` for the j-th
+ * join. Total output duration matches the input's (same "shrinks slightly
+ * per join" arithmetic as the main Gancho/Corpo/CTA crossfade joins).
+ */
+function applyBeatCutVideoRemix(inLabel: string, plan: ChunkPlan, segmentIndex: number): { videoLabel: string; filterLines: string[] } {
+  const { boundaries, order, transitions } = plan
+  const chunkCount = boundaries.length - 1
+  const filterLines: string[] = []
+
+  // A filtergraph link can only feed ONE filter — trimming N chunks out of
+  // the same source label requires explicitly fanning it out first.
+  const splitLabels = Array.from({ length: chunkCount }, (_, k) => `bcvSrc${segmentIndex}_${k}`)
+  filterLines.push(`[${inLabel}]split=${chunkCount}${splitLabels.map((l) => `[${l}]`).join('')}`)
+
+  for (let k = 0; k < chunkCount; k++) {
+    filterLines.push(
+      `[${splitLabels[k]}]trim=start=${boundaries[k].toFixed(3)}:end=${boundaries[k + 1].toFixed(3)},setpts=PTS-STARTPTS[bcv${segmentIndex}_${k}]`
+    )
+  }
+
+  const chunkDurations = order.map((k) => boundaries[k + 1] - boundaries[k])
+  let curLabel = `bcv${segmentIndex}_${order[0]}`
+  let curDuration = chunkDurations[0]
+
+  for (let j = 1; j < order.length; j++) {
+    const nextLabel = `bcv${segmentIndex}_${order[j]}`
+    const nextDuration = chunkDurations[j]
+    const t = clampTransitionDuration(curDuration, nextDuration)
+    const offset = Math.max(0, curDuration - t)
+    const outLabel = `bcvJoin${segmentIndex}_${j}`
+    filterLines.push(`[${curLabel}][${nextLabel}]xfade=transition=${transitions[j - 1]}:duration=${t.toFixed(3)}:offset=${offset.toFixed(3)}[${outLabel}]`)
+    curLabel = outLabel
+    curDuration = curDuration + nextDuration - t
+  }
+
+  return { videoLabel: curLabel, filterLines }
+}
+
+/**
+ * Audio counterpart of {@link applyBeatCutVideoRemix} — same
+ * boundaries/order so picture and sound stay in sync. Deliberately does NOT
+ * chain `acrossfade` the way the video side chains `xfade`: verified with a
+ * real ffmpeg render that chained `acrossfade` deadlocks (never produces a
+ * single frame) whenever the join order doesn't match the chunks' original
+ * creation order — exactly what a shuffle produces. `concat` (a hard join,
+ * no blend) is immune to that and was confirmed to render correctly under
+ * every reordering tested. The final `atrim` crops it to the exact duration
+ * the video side ends up at after its own xfade joins shrink it (identical
+ * clamp math on the identical chunk durations/order, so they always agree)
+ * — required so this segment's audio and video stay the same length once
+ * concatenated with the other two segments.
+ */
+function applyBeatCutAudioRemix(inLabel: string, plan: ChunkPlan, segmentIndex: number): { audioLabel: string; filterLines: string[] } {
+  const { boundaries, order } = plan
+  const chunkCount = boundaries.length - 1
+  const filterLines: string[] = []
+
+  const splitLabels = Array.from({ length: chunkCount }, (_, k) => `bcaSrc${segmentIndex}_${k}`)
+  filterLines.push(`[${inLabel}]asplit=${chunkCount}${splitLabels.map((l) => `[${l}]`).join('')}`)
+
+  const chunkLabels: string[] = []
+  for (let k = 0; k < chunkCount; k++) {
+    const label = `bca${segmentIndex}_${k}`
+    filterLines.push(
+      `[${splitLabels[k]}]atrim=start=${boundaries[k].toFixed(3)}:end=${boundaries[k + 1].toFixed(3)},asetpts=PTS-STARTPTS[${label}]`
+    )
+    chunkLabels.push(label)
+  }
+
+  const orderedLabels = order.map((k) => chunkLabels[k])
+  const concatLabel = `bcaConcat${segmentIndex}`
+  filterLines.push(`${orderedLabels.map((l) => `[${l}]`).join('')}concat=n=${chunkCount}:v=0:a=1[${concatLabel}]`)
+
+  const chunkDurations = order.map((k) => boundaries[k + 1] - boundaries[k])
+  let finalDuration = chunkDurations[0]
+  for (let j = 1; j < chunkDurations.length; j++) {
+    const t = clampTransitionDuration(finalDuration, chunkDurations[j])
+    finalDuration = finalDuration + chunkDurations[j] - t
+  }
+
+  const outLabel = `bcaFinal${segmentIndex}`
+  filterLines.push(`[${concatLabel}]atrim=0:${finalDuration.toFixed(3)},asetpts=PTS-STARTPTS[${outLabel}]`)
+
+  return { audioLabel: outLabel, filterLines }
 }
 
 /**
@@ -384,6 +563,30 @@ function applyFullAudioOverlay(
     filterComplex: `${result.filterComplex};${trackChain};${mixLine}`,
     videoOutputLabel: result.videoOutputLabel,
     audioOutputLabel: outLabel
+  }
+}
+
+/**
+ * Burns `overlay` in as ONE continuous drawtext over the fully concatenated
+ * video — used instead of (never together with) the per-segment hook/CTA
+ * text when `textMode === 'fullSpan'`. No `enable=` expression: unlike the
+ * per-segment hook text, this is meant to stay visible the entire time.
+ */
+function applyFullTextOverlay(
+  result: FilterGraphResult,
+  overlay: ResolvedTextOverlay,
+  fontFilePath: string,
+  targetHeight: number
+): FilterGraphResult {
+  const outLabel = 'outv_fulltext'
+  const drawTextChain = buildDrawTextStage(overlay, fontFilePath, targetHeight, null)
+  const line = `[${result.videoOutputLabel}]${drawTextChain}[${outLabel}]`
+
+  return {
+    extraInputArgs: result.extraInputArgs,
+    filterComplex: `${result.filterComplex};${line}`,
+    videoOutputLabel: outLabel,
+    audioOutputLabel: result.audioOutputLabel
   }
 }
 
@@ -462,13 +665,14 @@ function buildCrossfadeGraph(
   filterLines: string[],
   settings: ExportSettings,
   extraInputArgs: string[],
-  variation: VariationParameters
+  variation: VariationParameters,
+  style: BeatTransitionStyle
 ): FilterGraphResult {
   const durations = segments.map((s) => computeEffectiveDuration(s, variation))
   const t1 = Math.min(settings.transitionDuration, Math.max(0.05, Math.min(durations[0], durations[1]) - 0.1))
 
   filterLines.push(
-    `[${videoLabels[0]}][${videoLabels[1]}]xfade=transition=fade:duration=${t1}:offset=${Math.max(0, durations[0] - t1)}[vx01]`
+    `[${videoLabels[0]}][${videoLabels[1]}]xfade=transition=${style}:duration=${t1}:offset=${Math.max(0, durations[0] - t1)}[vx01]`
   )
   filterLines.push(`[${audioLabels[0]}][${audioLabels[1]}]acrossfade=d=${t1}[ax01]`)
 
@@ -476,7 +680,7 @@ function buildCrossfadeGraph(
   const t2 = Math.min(settings.transitionDuration, Math.max(0.05, Math.min(mergedDuration01, durations[2]) - 0.1))
 
   filterLines.push(
-    `[vx01][${videoLabels[2]}]xfade=transition=fade:duration=${t2}:offset=${Math.max(0, mergedDuration01 - t2)}[outv]`
+    `[vx01][${videoLabels[2]}]xfade=transition=${style}:duration=${t2}:offset=${Math.max(0, mergedDuration01 - t2)}[outv]`
   )
   filterLines.push(`[ax01][${audioLabels[2]}]acrossfade=d=${t2}[outa]`)
 

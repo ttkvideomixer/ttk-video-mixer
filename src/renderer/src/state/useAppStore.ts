@@ -3,6 +3,9 @@ import { useAuthStore } from './useAuthStore'
 import type {
   AudioFile,
   AudioSettings,
+  BeatCutSettings,
+  BeatGrid,
+  BeatTransitionStyle,
   CombinationSelectionSettings,
   CreativeVariationSettings,
   ExportSettings,
@@ -18,6 +21,7 @@ import type {
   Project,
   RecentProjectEntry,
   SilenceTrimSettings,
+  TextMode,
   VariationParameters,
   VideoCategory,
   VideoFile,
@@ -25,6 +29,7 @@ import type {
 } from '@shared/types'
 import {
   DEFAULT_AUDIO_SETTINGS,
+  DEFAULT_BEAT_CUT_SETTINGS,
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
@@ -32,6 +37,7 @@ import {
   DEFAULT_OVERLAYS_STATE,
   DEFAULT_PREFIX,
   DEFAULT_SILENCE_TRIM_SETTINGS,
+  DEFAULT_TEXT_MODE,
   DEFAULT_VISUAL_CTA_SETTINGS,
   FRAME_ELIGIBLE_RESOLUTION,
   NEUTRAL_VARIATION_PARAMETERS,
@@ -44,6 +50,7 @@ import { sanitizeFileNamePart } from '@shared/sanitize'
 import { computePreviewConfigurationHash, type RenderAffectingConfig } from '@shared/previewConfig'
 import { buildVariationSequence } from '@shared/variationParams'
 import { distributeCtaPhrases } from '@shared/ctaPhrases'
+import { detectBeatGrid } from '../utils/beatDetection'
 
 function toVideoFile(descriptor: ImportedVideoDescriptor, category: VideoCategory, order: number): VideoFile {
   return {
@@ -75,6 +82,14 @@ function reindex(list: VideoFile[]): VideoFile[] {
 
 function makeProjectSeed(): number {
   return Math.floor(Math.random() * 2 ** 31)
+}
+
+/** Detects the beat grid for every distinct path in `paths` (nulls ignored, duplicates deduped) — detectBeatGrid itself caches per-file, so this is cheap on repeat calls. */
+async function resolveBeatGrids(paths: (string | null)[]): Promise<Map<string, BeatGrid | null>> {
+  const uniquePaths = [...new Set(paths.filter((p): p is string => p !== null))]
+  if (uniquePaths.length === 0) return new Map()
+  const entries = await Promise.all(uniquePaths.map(async (path) => [path, await detectBeatGrid(path)] as const))
+  return new Map(entries)
 }
 
 interface GenerationState {
@@ -135,6 +150,8 @@ interface AppState {
   audioSettings: AudioSettings
   /** Which slot the Áudio modal should show when opened — set by openAudioFilesModal. */
   audioModalSlot: AudioSlot
+  beatCutSettings: BeatCutSettings
+  textMode: TextMode
   createSubfolderPerProject: boolean
   prefix: string
   exportSettings: ExportSettings
@@ -191,6 +208,14 @@ interface AppState {
   removeAudioFile: (slot: AudioSlot, id: string) => void
   clearAudioSlot: (slot: AudioSlot) => void
   clearAllAttachedAudio: () => void
+  setBeatCutHook: (enabled: boolean) => void
+  setBeatCutBody: (enabled: boolean) => void
+  setBeatCutCta: (enabled: boolean) => void
+  enableBeatCutAll: () => void
+  disableBeatCutAll: () => void
+  setBeatCutFallbackChunkCount: (count: number) => void
+  setBeatCutAllowedTransitions: (styles: BeatTransitionStyle[]) => void
+  setTextMode: (mode: TextMode) => void
   setCreateSubfolderPerProject: (value: boolean) => void
   setPrefix: (value: string) => void
   setProjectName: (value: string) => void
@@ -269,6 +294,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   frameFilePaths: [],
   audioSettings: DEFAULT_AUDIO_SETTINGS,
   audioModalSlot: 'hook',
+  beatCutSettings: DEFAULT_BEAT_CUT_SETTINGS,
+  textMode: DEFAULT_TEXT_MODE,
   createSubfolderPerProject: true,
   prefix: DEFAULT_PREFIX,
   exportSettings: DEFAULT_EXPORT_SETTINGS,
@@ -462,6 +489,37 @@ export const useAppStore = create<AppState>((set, get) => ({
     }))
   },
 
+  setBeatCutHook: (enabled) => {
+    set((state) => ({ beatCutSettings: { ...state.beatCutSettings, hookEnabled: enabled }, previewApproved: false }))
+  },
+  setBeatCutBody: (enabled) => {
+    set((state) => ({ beatCutSettings: { ...state.beatCutSettings, bodyEnabled: enabled }, previewApproved: false }))
+  },
+  setBeatCutCta: (enabled) => {
+    set((state) => ({ beatCutSettings: { ...state.beatCutSettings, ctaEnabled: enabled }, previewApproved: false }))
+  },
+  enableBeatCutAll: () => {
+    set((state) => ({
+      beatCutSettings: { ...state.beatCutSettings, hookEnabled: true, bodyEnabled: true, ctaEnabled: true },
+      previewApproved: false
+    }))
+  },
+  disableBeatCutAll: () => {
+    set((state) => ({
+      beatCutSettings: { ...state.beatCutSettings, hookEnabled: false, bodyEnabled: false, ctaEnabled: false },
+      previewApproved: false
+    }))
+  },
+  setBeatCutFallbackChunkCount: (count) => {
+    set((state) => ({ beatCutSettings: { ...state.beatCutSettings, fallbackChunkCount: count }, previewApproved: false }))
+  },
+  setBeatCutAllowedTransitions: (styles) => {
+    set((state) => ({ beatCutSettings: { ...state.beatCutSettings, allowedTransitionStyles: styles }, previewApproved: false }))
+  },
+  setTextMode: (mode) => {
+    set({ textMode: mode, previewApproved: false })
+  },
+
   setCreateSubfolderPerProject: (value) => {
     set({ createSubfolderPerProject: value })
     window.api.setPreferences({ createSubfolderPerProject: value })
@@ -594,7 +652,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       visualCta,
       frameSettings,
       frameFilePaths,
-      audioSettings
+      audioSettings,
+      beatCutSettings,
+      textMode
     } = get()
     const hook = hooks.find((h) => h.id === testSelection.hookId) ?? hooks[0]
     const body = bodies.find((b) => b.id === testSelection.bodyId) ?? bodies[0]
@@ -626,6 +686,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       const bodyAudioPath = pickRandomTrack(audioSettings.bodyTracks)
       const ctaAudioPath = pickRandomTrack(audioSettings.ctaTracks)
       const fullAudioPath = pickRandomTrack(audioSettings.fullTracks)
+      const grids = await resolveBeatGrids([
+        beatCutSettings.hookEnabled ? hookAudioPath : null,
+        beatCutSettings.bodyEnabled ? bodyAudioPath : null,
+        beatCutSettings.ctaEnabled ? ctaAudioPath : null,
+        fullAudioPath
+      ])
       // The underlying clip is rendered WITHOUT burning the text in: the
       // Preview screen draws the hook/CTA text itself as a live, draggable
       // HTML overlay (using the exact same font/size/wrap math as ffmpeg),
@@ -648,6 +714,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         bodyAudioPath,
         ctaAudioPath,
         fullAudioPath,
+        textMode,
+        beatCutHook: beatCutSettings.hookEnabled,
+        beatCutBody: beatCutSettings.bodyEnabled,
+        beatCutCta: beatCutSettings.ctaEnabled,
+        beatCutSeed: Date.now(),
+        beatCutFallbackChunkCount: beatCutSettings.fallbackChunkCount,
+        beatCutAllowedTransitions: beatCutSettings.allowedTransitionStyles,
+        hookBeatGrid: hookAudioPath ? (grids.get(hookAudioPath) ?? null) : null,
+        bodyBeatGrid: bodyAudioPath ? (grids.get(bodyAudioPath) ?? null) : null,
+        ctaBeatGrid: ctaAudioPath ? (grids.get(ctaAudioPath) ?? null) : null,
+        fullBeatGrid: fullAudioPath ? (grids.get(fullAudioPath) ?? null) : null,
         variation: rolledVariation
       })
       set({ testPreviewPath: path, testPreviewLoading: false, previewExampleCtaPhrase: ctaPhrase })
@@ -706,7 +783,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       creativeVariation,
       projectSeed,
       frameSettings,
-      audioSettings
+      audioSettings,
+      beatCutSettings,
+      textMode
     } = state
     const outputFolder = get().computeOutputFolderPath()
     if (!outputFolder) return
@@ -732,8 +811,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       creativeVariation,
       projectSeed,
       frameFilePaths,
-      audioSettings
+      audioSettings,
+      beatCutSettings,
+      textMode
     })
+
+    if (beatCutSettings.hookEnabled || beatCutSettings.bodyEnabled || beatCutSettings.ctaEnabled) {
+      const grids = await resolveBeatGrids(
+        jobs.flatMap((j) => [
+          beatCutSettings.hookEnabled ? j.hookAudioPath : null,
+          beatCutSettings.bodyEnabled ? j.bodyAudioPath : null,
+          beatCutSettings.ctaEnabled ? j.ctaAudioPath : null,
+          j.fullAudioPath
+        ])
+      )
+      for (const job of jobs) {
+        job.hookBeatGrid = beatCutSettings.hookEnabled && job.hookAudioPath ? (grids.get(job.hookAudioPath) ?? null) : null
+        job.bodyBeatGrid = beatCutSettings.bodyEnabled && job.bodyAudioPath ? (grids.get(job.bodyAudioPath) ?? null) : null
+        job.ctaBeatGrid = beatCutSettings.ctaEnabled && job.ctaAudioPath ? (grids.get(job.ctaAudioPath) ?? null) : null
+        job.fullBeatGrid = job.fullAudioPath ? (grids.get(job.fullAudioPath) ?? null) : null
+      }
+    }
 
     set({ activeModal: null })
 
@@ -842,6 +940,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       creativeVariation: DEFAULT_CREATIVE_VARIATION_SETTINGS,
       silenceTrim: DEFAULT_SILENCE_TRIM_SETTINGS,
       audioSettings: DEFAULT_AUDIO_SETTINGS,
+      beatCutSettings: DEFAULT_BEAT_CUT_SETTINGS,
+      textMode: DEFAULT_TEXT_MODE,
       overlays: DEFAULT_OVERLAYS_STATE,
       projectSeed: makeProjectSeed(),
       previewApproved: false,
@@ -875,6 +975,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       preview: { approved: state.previewApproved, configurationHash: state.previewConfigurationHash },
       frameSettings: state.frameSettings,
       audioSettings: state.audioSettings,
+      beatCutSettings: state.beatCutSettings,
+      textMode: state.textMode,
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
@@ -910,6 +1012,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       previewConfigurationHash: project.preview.configurationHash,
       frameSettings: project.frameSettings,
       audioSettings: project.audioSettings,
+      beatCutSettings: project.beatCutSettings,
+      textMode: project.textMode,
       generation: emptyGeneration,
       currentView: 'home',
       activeModal: null

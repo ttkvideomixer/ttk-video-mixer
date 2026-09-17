@@ -48,7 +48,18 @@ function makeJob(id: string, outputPath: string): GenerationJob {
     hookAudioPath: null,
     bodyAudioPath: null,
     ctaAudioPath: null,
-    fullAudioPath: null
+    fullAudioPath: null,
+    textMode: 'perSegment',
+    beatCutHook: false,
+    beatCutBody: false,
+    beatCutCta: false,
+    beatCutSeed: 0,
+    beatCutFallbackChunkCount: 4,
+    beatCutAllowedTransitions: [],
+    hookBeatGrid: null,
+    bodyBeatGrid: null,
+    ctaBeatGrid: null,
+    fullBeatGrid: null
   }
 }
 

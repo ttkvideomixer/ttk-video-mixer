@@ -1,7 +1,22 @@
 import { useAppStore, type AudioSlot } from '../state/useAppStore'
 import { countAvailableVariationSpace } from '@shared/variationParams'
-import { FRAME_ELIGIBLE_RESOLUTION } from '@shared/defaults'
+import { BEAT_TRANSITION_STYLES, FRAME_ELIGIBLE_RESOLUTION } from '@shared/defaults'
+import type { BeatTransitionStyle } from '@shared/types'
 import { formatNumberPtBr } from '../utils/format'
+
+const BEAT_TRANSITION_LABELS: Record<BeatTransitionStyle, string> = {
+  fade: 'Fade',
+  wipeleft: 'Wipe esquerda',
+  wiperight: 'Wipe direita',
+  slideup: 'Deslizar cima',
+  slidedown: 'Deslizar baixo',
+  circleopen: 'Círculo (abrir)',
+  circleclose: 'Círculo (fechar)',
+  pixelize: 'Pixelizar',
+  zoomin: 'Zoom',
+  dissolve: 'Dissolver',
+  radial: 'Radial'
+}
 
 function CreativeVariationPanel(): JSX.Element {
   const creativeVariation = useAppStore((s) => s.creativeVariation)
@@ -21,6 +36,14 @@ function CreativeVariationPanel(): JSX.Element {
   const unmuteAllAudio = useAppStore((s) => s.unmuteAllAudio)
   const openAudioFilesModal = useAppStore((s) => s.openAudioFilesModal)
   const clearAllAttachedAudio = useAppStore((s) => s.clearAllAttachedAudio)
+  const beatCutSettings = useAppStore((s) => s.beatCutSettings)
+  const setBeatCutHook = useAppStore((s) => s.setBeatCutHook)
+  const setBeatCutBody = useAppStore((s) => s.setBeatCutBody)
+  const setBeatCutCta = useAppStore((s) => s.setBeatCutCta)
+  const enableBeatCutAll = useAppStore((s) => s.enableBeatCutAll)
+  const disableBeatCutAll = useAppStore((s) => s.disableBeatCutAll)
+  const setBeatCutFallbackChunkCount = useAppStore((s) => s.setBeatCutFallbackChunkCount)
+  const setBeatCutAllowedTransitions = useAppStore((s) => s.setBeatCutAllowedTransitions)
 
   const availableSpace = countAvailableVariationSpace(creativeVariation)
   const frameResolutionMismatch = frameSettings.enabled && resolution !== FRAME_ELIGIBLE_RESOLUTION
@@ -196,6 +219,78 @@ function CreativeVariationPanel(): JSX.Element {
           >
             Desativar todos os áudios anexados
           </button>
+        )}
+      </div>
+
+      <div className="border-t border-bg-border pt-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold uppercase tracking-wide text-gray-300">Cortes na Batida</h4>
+          <div className="flex gap-2">
+            <button
+              onClick={disableBeatCutAll}
+              className="rounded-lg border border-bg-border px-2 py-1 text-[11px] text-gray-300 hover:bg-bg-soft"
+            >
+              Desativar tudo
+            </button>
+            <button
+              onClick={enableBeatCutAll}
+              className="rounded-lg border border-bg-border px-2 py-1 text-[11px] text-gray-300 hover:bg-bg-soft"
+            >
+              Ativar tudo
+            </button>
+          </div>
+        </div>
+
+        <p className="mt-1.5 text-[11px] text-gray-600">
+          Divide o trecho em pedaços e embaralha a ordem, com transições entre eles — sincronizado com a batida de
+          uma trilha anexada (usa a trilha da própria categoria, ou a de &ldquo;Vídeo completo&rdquo; se não houver
+          uma específica) ou, sem música, em pedaços de tamanho parecido. Cada vídeo gerado sai com um remix
+          diferente.
+        </p>
+
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <VariationCheckbox label="Gancho" checked={beatCutSettings.hookEnabled} onChange={setBeatCutHook} />
+          <VariationCheckbox label="Corpo" checked={beatCutSettings.bodyEnabled} onChange={setBeatCutBody} />
+          <VariationCheckbox label="CTA" checked={beatCutSettings.ctaEnabled} onChange={setBeatCutCta} />
+        </div>
+
+        {(beatCutSettings.hookEnabled || beatCutSettings.bodyEnabled || beatCutSettings.ctaEnabled) && (
+          <>
+            <label className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+              Pedaços sem música (por trecho)
+              <input
+                type="number"
+                min={2}
+                max={16}
+                value={beatCutSettings.fallbackChunkCount}
+                onChange={(e) => setBeatCutFallbackChunkCount(Math.max(2, Math.min(16, Number(e.target.value) || 2)))}
+                className="w-16 rounded-lg border border-bg-border bg-bg-soft px-2 py-1 text-sm text-white outline-none focus:border-brand"
+              />
+            </label>
+
+            <p className="mt-3 text-[11px] text-gray-500">Estilos de transição sorteados entre os pedaços:</p>
+            <div className="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {BEAT_TRANSITION_STYLES.map((style) => {
+                const checked = beatCutSettings.allowedTransitionStyles.includes(style)
+                return (
+                  <label key={style} className="flex items-center gap-1.5 rounded-lg bg-bg-soft px-2 py-1.5 text-[11px] text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...beatCutSettings.allowedTransitionStyles, style]
+                          : beatCutSettings.allowedTransitionStyles.filter((s) => s !== style)
+                        setBeatCutAllowedTransitions(next)
+                      }}
+                      className="h-3.5 w-3.5 accent-brand"
+                    />
+                    {BEAT_TRANSITION_LABELS[style]}
+                  </label>
+                )
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
