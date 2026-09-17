@@ -41,6 +41,10 @@ jobs:
             release/TTK-Video-Mixer-Setup-*.exe.blockmap
             release/latest.yml
           if-no-files-found: error
+          # Only needed to hand off to publish-release later in this same run —
+          # GitHub's 90-day default let ~20 releases' worth pile up to 11GB and
+          # blow the account's Actions storage quota.
+          retention-days: 1
 
   build-macos:
     runs-on: macos-latest
@@ -74,6 +78,7 @@ jobs:
             release/TTK-Video-Mixer-*.zip
             release/latest-mac.yml
           if-no-files-found: error
+          retention-days: 1
 
   publish-release:
     needs: [build-windows, build-macos]
