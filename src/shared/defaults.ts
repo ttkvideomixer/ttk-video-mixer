@@ -109,7 +109,26 @@ export const DEFAULT_PREFIX = 'video'
 
 export const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.mkv', '.webm', '.m4v', '.avi']
 export const SUPPORTED_FRAME_EXTENSIONS = ['.png']
-export const SUPPORTED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac', '.wma']
+export const SUPPORTED_AUDIO_EXTENSIONS = [
+  '.mp3',
+  '.wav',
+  '.m4a',
+  '.aac',
+  '.ogg',
+  '.oga',
+  '.flac',
+  '.wma',
+  '.opus',
+  '.aiff',
+  '.aif',
+  '.amr',
+  '.ac3',
+  '.caf',
+  '.wv',
+  '.weba'
+]
+/** Audio tracks can also be picked from a video file — its audio stream is used directly, no separate extraction step needed. */
+export const SUPPORTED_AUDIO_SOURCE_EXTENSIONS = [...SUPPORTED_AUDIO_EXTENSIONS, ...SUPPORTED_VIDEO_EXTENSIONS]
 /** Only this resolution preset matches what the "molduras" PNGs are designed for. */
 export const FRAME_ELIGIBLE_RESOLUTION = '1080x1920'
 

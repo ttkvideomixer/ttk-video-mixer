@@ -58,7 +58,8 @@ function AudioFilesModal(): JSX.Element {
         {audioModalSlot === 'full'
           ? 'Essas trilhas cobrem o vídeo inteiro, do início do gancho ao final do CTA.'
           : `Essas trilhas são anexadas apenas em ${SLOT_LABELS[audioModalSlot].toLowerCase()}.`}{' '}
-        Uma trilha é sorteada por vídeo gerado. Se for curta, repete até o fim do trecho; se for longa, é cortada.
+        Uma trilha é sorteada por vídeo gerado. Se for curta, repete até o fim do trecho; se for longa, é cortada. Você
+        também pode escolher um vídeo — o áudio dele é usado automaticamente.
       </p>
 
       <div className="flex max-h-72 flex-col gap-2 overflow-y-auto pr-1">

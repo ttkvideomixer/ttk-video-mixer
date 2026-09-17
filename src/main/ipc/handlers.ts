@@ -15,14 +15,14 @@ import type {
   RenderJobInput,
   StartGenerationResult
 } from '@shared/types'
-import { SUPPORTED_AUDIO_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS } from '@shared/defaults'
+import { SUPPORTED_AUDIO_SOURCE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS } from '@shared/defaults'
 import { resolveFfmpegPaths } from '../ffmpeg/binaries'
 import { probeVideoFile } from '../ffmpeg/probe'
 import { generateThumbnailDataUrl } from '../ffmpeg/thumbnail'
 import { processJob } from '../ffmpeg/videoProcessor'
 import { listVideoFilesInFolder } from '../utils/videoImport'
 import { listBundledFrames } from '../utils/frameImport'
-import { listAudioFilesInFolder } from '../utils/audioImport'
+import { listAudioFilesInFolder, hasUsableAudioStream } from '../utils/audioImport'
 import { getDiskSpaceInfo } from '../utils/diskSpace'
 import { buildCombinationsCsv } from '../utils/csv'
 import { getPreferences, setPreferences } from '../store/preferences'
@@ -115,17 +115,18 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle(IpcChannels.selectAudioFiles, async (): Promise<AudioFile[]> => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Selecionar áudios',
+      title: 'Selecionar áudios ou vídeos',
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Áudios', extensions: SUPPORTED_AUDIO_EXTENSIONS.map((e) => e.replace('.', '')) }]
+      filters: [{ name: 'Áudios e Vídeos', extensions: SUPPORTED_AUDIO_SOURCE_EXTENSIONS.map((e) => e.replace('.', '')) }]
     })
     if (result.canceled) return []
-    return result.filePaths.map(describeAudioFile)
+    const usable = await Promise.all(result.filePaths.map(async (p) => ((await hasUsableAudioStream(p)) ? p : null)))
+    return usable.filter((p): p is string => p !== null).map(describeAudioFile)
   })
 
   ipcMain.handle(IpcChannels.selectAudioFolder, async (): Promise<AudioFile[]> => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Selecionar pasta de áudios',
+      title: 'Selecionar pasta de áudios ou vídeos',
       properties: ['openDirectory']
     })
     if (result.canceled || result.filePaths.length === 0) return []
