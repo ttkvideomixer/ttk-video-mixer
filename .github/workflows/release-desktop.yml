@@ -16,6 +16,10 @@ jobs:
     defaults:
       run:
         working-directory: .
+    # Default GITHUB_TOKEN is read-only in this repo/org; softprops/action-gh-release
+    # needs contents:write to create the release and upload the installers.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -33,21 +37,27 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - uses: actions/upload-artifact@v4
+      # Uploads straight to the GitHub Release instead of an Actions artifact —
+      # Release assets aren't billed against the Actions storage quota, which
+      # is what blocked v1.4.0/v1.4.1 (90-day-default build artifacts from past
+      # releases had piled up to ~11GB and hit the account's quota, and that
+      # usage figure only recalculates every 6-12h even after deleting them).
+      - name: Publish GitHub Release (Windows assets)
+        uses: softprops/action-gh-release@v2
         with:
-          name: windows-installer
-          path: |
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
             release/TTK-Video-Mixer-Setup-*.exe
             release/TTK-Video-Mixer-Setup-*.exe.blockmap
             release/latest.yml
-          if-no-files-found: error
-          # Only needed to hand off to publish-release later in this same run —
-          # GitHub's 90-day default let ~20 releases' worth pile up to 11GB and
-          # blow the account's Actions storage quota.
-          retention-days: 1
 
   build-macos:
+    needs: build-windows
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -70,38 +80,15 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-installer
-          path: |
-            release/TTK-Video-Mixer-*.dmg
-            release/TTK-Video-Mixer-*.zip
-            release/latest-mac.yml
-          if-no-files-found: error
-          retention-days: 1
-
-  publish-release:
-    needs: [build-windows, build-macos]
-    runs-on: ubuntu-latest
-    # Default GITHUB_TOKEN is read-only in this repo/org; softprops/action-gh-release
-    # needs contents:write to create the release and upload the installers.
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-
-      - name: Publish GitHub Release
+      # needs: build-windows makes this run after the release already exists
+      # (created above) instead of racing it — this call just adds more files
+      # to that same release.
+      - name: Publish GitHub Release (macOS assets)
         uses: softprops/action-gh-release@v2
         with:
           draft: false
           prerelease: false
-          generate_release_notes: true
           files: |
-            dist/windows-installer/*.exe
-            dist/windows-installer/*.blockmap
-            dist/windows-installer/latest.yml
-            dist/macos-installer/*.dmg
-            dist/macos-installer/*.zip
-            dist/macos-installer/latest-mac.yml
+            release/TTK-Video-Mixer-*.dmg
+            release/TTK-Video-Mixer-*.zip
+            release/latest-mac.yml
