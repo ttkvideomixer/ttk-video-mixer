@@ -5,6 +5,8 @@ export const IpcChannels = {
   describePaths: 'import:describe-paths',
   chooseOutputFolder: 'import:choose-output-folder',
   listBundledFrames: 'frames:list-bundled',
+  selectAudioFiles: 'audio:select-files',
+  selectAudioFolder: 'audio:select-folder',
   openPath: 'fs:open-path',
   showInFolder: 'fs:show-in-folder',
   getDiskSpace: 'fs:disk-space',

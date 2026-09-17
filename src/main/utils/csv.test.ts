@@ -33,6 +33,13 @@ function makeJob(overrides: Partial<GenerationJob> = {}): GenerationJob {
     sha256: 'abc123',
     visualFingerprint: 'fp',
     attempt: 0,
+    muteHook: false,
+    muteBody: false,
+    muteCta: false,
+    hookAudioPath: null,
+    bodyAudioPath: null,
+    ctaAudioPath: null,
+    fullAudioPath: null,
     ...overrides
   }
 }

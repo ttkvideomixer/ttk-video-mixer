@@ -1,4 +1,4 @@
-import { useAppStore } from '../state/useAppStore'
+import { useAppStore, type AudioSlot } from '../state/useAppStore'
 import { countAvailableVariationSpace } from '@shared/variationParams'
 import { FRAME_ELIGIBLE_RESOLUTION } from '@shared/defaults'
 import { formatNumberPtBr } from '../utils/format'
@@ -13,6 +13,14 @@ function CreativeVariationPanel(): JSX.Element {
   const frameSettings = useAppStore((s) => s.frameSettings)
   const setFramesEnabled = useAppStore((s) => s.setFramesEnabled)
   const resolution = useAppStore((s) => s.exportSettings.resolution)
+  const audioSettings = useAppStore((s) => s.audioSettings)
+  const setMuteHook = useAppStore((s) => s.setMuteHook)
+  const setMuteBody = useAppStore((s) => s.setMuteBody)
+  const setMuteCta = useAppStore((s) => s.setMuteCta)
+  const muteAllAudio = useAppStore((s) => s.muteAllAudio)
+  const unmuteAllAudio = useAppStore((s) => s.unmuteAllAudio)
+  const openAudioFilesModal = useAppStore((s) => s.openAudioFilesModal)
+  const clearAllAttachedAudio = useAppStore((s) => s.clearAllAttachedAudio)
 
   const availableSpace = countAvailableVariationSpace(creativeVariation)
   const frameResolutionMismatch = frameSettings.enabled && resolution !== FRAME_ELIGIBLE_RESOLUTION
@@ -135,6 +143,61 @@ function CreativeVariationPanel(): JSX.Element {
           </p>
         )}
       </div>
+
+      <div className="border-t border-bg-border pt-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold uppercase tracking-wide text-gray-300">Áudio</h4>
+          <div className="flex gap-2">
+            <button
+              onClick={unmuteAllAudio}
+              className="rounded-lg border border-bg-border px-2 py-1 text-[11px] text-gray-300 hover:bg-bg-soft"
+            >
+              Desmutar tudo
+            </button>
+            <button
+              onClick={muteAllAudio}
+              className="rounded-lg border border-bg-border px-2 py-1 text-[11px] text-gray-300 hover:bg-bg-soft"
+            >
+              Mutar tudo
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <VariationCheckbox label="Mutar Gancho" checked={audioSettings.muteHook} onChange={setMuteHook} />
+          <VariationCheckbox label="Mutar Corpo" checked={audioSettings.muteBody} onChange={setMuteBody} />
+          <VariationCheckbox label="Mutar CTA" checked={audioSettings.muteCta} onChange={setMuteCta} />
+        </div>
+
+        <p className="mt-3 text-[11px] text-gray-600">
+          Anexe trilhas próprias por categoria — sorteadas aleatoriamente por vídeo, repetindo se forem curtas e
+          cortando se forem longas.
+        </p>
+
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <AudioManageButton slot="hook" label="Gancho" count={audioSettings.hookTracks.length} onClick={openAudioFilesModal} />
+          <AudioManageButton slot="body" label="Corpo" count={audioSettings.bodyTracks.length} onClick={openAudioFilesModal} />
+          <AudioManageButton slot="cta" label="CTA" count={audioSettings.ctaTracks.length} onClick={openAudioFilesModal} />
+          <AudioManageButton
+            slot="full"
+            label="Vídeo completo"
+            count={audioSettings.fullTracks.length}
+            onClick={openAudioFilesModal}
+          />
+        </div>
+
+        {(audioSettings.hookTracks.length > 0 ||
+          audioSettings.bodyTracks.length > 0 ||
+          audioSettings.ctaTracks.length > 0 ||
+          audioSettings.fullTracks.length > 0) && (
+          <button
+            onClick={clearAllAttachedAudio}
+            className="mt-2 rounded-lg px-2 py-1 text-[11px] text-gray-500 hover:text-error"
+          >
+            Desativar todos os áudios anexados
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -153,6 +216,27 @@ function VariationCheckbox({
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-brand" />
       {label}
     </label>
+  )
+}
+
+function AudioManageButton({
+  slot,
+  label,
+  count,
+  onClick
+}: {
+  slot: AudioSlot
+  label: string
+  count: number
+  onClick: (slot: AudioSlot) => void
+}): JSX.Element {
+  return (
+    <button
+      onClick={() => onClick(slot)}
+      className="rounded-lg border border-bg-border bg-bg-soft px-3 py-2 text-left text-xs font-semibold text-gray-300 hover:bg-bg-border"
+    >
+      Gerenciar Áudio: {label} ({count})
+    </button>
   )
 }
 

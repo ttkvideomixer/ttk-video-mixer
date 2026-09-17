@@ -15,6 +15,7 @@ import PreviewWorkspace from './components/PreviewWorkspace'
 import GenerateBar from './components/GenerateBar'
 import PreviewModal from './components/PreviewModal'
 import HookTextsModal from './components/HookTextsModal'
+import AudioFilesModal from './components/AudioFilesModal'
 import ConfirmGenerateModal from './components/ConfirmGenerateModal'
 import ConfirmClearCategoryModal from './components/ConfirmClearCategoryModal'
 import ConfirmCancelModal from './components/ConfirmCancelModal'
@@ -114,6 +115,7 @@ function App(): JSX.Element {
 
       {activeModal === 'preview' && <PreviewModal />}
       {activeModal === 'hookTexts' && <HookTextsModal />}
+      {activeModal === 'audioFiles' && <AudioFilesModal />}
       {activeModal === 'confirmGenerate' && <ConfirmGenerateModal />}
       {activeModal === 'confirmClearCategory' && <ConfirmClearCategoryModal />}
       {activeModal === 'confirmCancel' && <ConfirmCancelModal />}

@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { useAuthStore } from './useAuthStore'
 import type {
+  AudioFile,
+  AudioSettings,
   CombinationSelectionSettings,
   CreativeVariationSettings,
   ExportSettings,
@@ -22,6 +24,7 @@ import type {
   VisualCtaSettings
 } from '@shared/types'
 import {
+  DEFAULT_AUDIO_SETTINGS,
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
@@ -58,6 +61,13 @@ function toVideoFile(descriptor: ImportedVideoDescriptor, category: VideoCategor
     probeError: descriptor.probeError
   }
 }
+
+const AUDIO_SLOT_KEYS = {
+  hook: 'hookTracks',
+  body: 'bodyTracks',
+  cta: 'ctaTracks',
+  full: 'fullTracks'
+} as const satisfies Record<AudioSlot, keyof AudioSettings>
 
 function reindex(list: VideoFile[]): VideoFile[] {
   return list.map((item, i) => ({ ...item, order: i }))
@@ -101,7 +111,10 @@ export type ModalName =
   | 'missingRequirements'
   | 'paywall'
   | 'account'
+  | 'audioFiles'
   | null
+
+export type AudioSlot = 'hook' | 'body' | 'cta' | 'full'
 
 interface AppState {
   ready: boolean
@@ -119,6 +132,9 @@ interface AppState {
   frameSettings: FrameSettings
   /** Bundled with the app (see main/utils/frameImport.ts) — loaded once at startup, same list for every project. */
   frameFilePaths: string[]
+  audioSettings: AudioSettings
+  /** Which slot the Áudio modal should show when opened — set by openAudioFilesModal. */
+  audioModalSlot: AudioSlot
   createSubfolderPerProject: boolean
   prefix: string
   exportSettings: ExportSettings
@@ -165,6 +181,16 @@ interface AppState {
   confirmClearCategory: () => void
   setOutputFolder: () => Promise<void>
   setFramesEnabled: (enabled: boolean) => void
+  setMuteHook: (muted: boolean) => void
+  setMuteBody: (muted: boolean) => void
+  setMuteCta: (muted: boolean) => void
+  muteAllAudio: () => void
+  unmuteAllAudio: () => void
+  openAudioFilesModal: (slot: AudioSlot) => void
+  addAudioFiles: (slot: AudioSlot, files: AudioFile[]) => void
+  removeAudioFile: (slot: AudioSlot, id: string) => void
+  clearAudioSlot: (slot: AudioSlot) => void
+  clearAllAttachedAudio: () => void
   setCreateSubfolderPerProject: (value: boolean) => void
   setPrefix: (value: string) => void
   setProjectName: (value: string) => void
@@ -241,6 +267,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastGeneratedFolder: null,
   frameSettings: DEFAULT_FRAME_SETTINGS,
   frameFilePaths: [],
+  audioSettings: DEFAULT_AUDIO_SETTINGS,
+  audioModalSlot: 'hook',
   createSubfolderPerProject: true,
   prefix: DEFAULT_PREFIX,
   exportSettings: DEFAULT_EXPORT_SETTINGS,
@@ -381,6 +409,59 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({ frameSettings: { ...state.frameSettings, enabled } }))
   },
 
+  setMuteHook: (muted) => {
+    set((state) => ({ audioSettings: { ...state.audioSettings, muteHook: muted }, previewApproved: false }))
+  },
+  setMuteBody: (muted) => {
+    set((state) => ({ audioSettings: { ...state.audioSettings, muteBody: muted }, previewApproved: false }))
+  },
+  setMuteCta: (muted) => {
+    set((state) => ({ audioSettings: { ...state.audioSettings, muteCta: muted }, previewApproved: false }))
+  },
+  muteAllAudio: () => {
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, muteHook: true, muteBody: true, muteCta: true },
+      previewApproved: false
+    }))
+  },
+  unmuteAllAudio: () => {
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, muteHook: false, muteBody: false, muteCta: false },
+      previewApproved: false
+    }))
+  },
+
+  openAudioFilesModal: (slot) => set({ activeModal: 'audioFiles', audioModalSlot: slot }),
+
+  addAudioFiles: (slot, files) => {
+    if (files.length === 0) return
+    const key = AUDIO_SLOT_KEYS[slot]
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, [key]: [...state.audioSettings[key], ...files] },
+      previewApproved: false
+    }))
+  },
+
+  removeAudioFile: (slot, id) => {
+    const key = AUDIO_SLOT_KEYS[slot]
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, [key]: state.audioSettings[key].filter((f) => f.id !== id) },
+      previewApproved: false
+    }))
+  },
+
+  clearAudioSlot: (slot) => {
+    const key = AUDIO_SLOT_KEYS[slot]
+    set((state) => ({ audioSettings: { ...state.audioSettings, [key]: [] }, previewApproved: false }))
+  },
+
+  clearAllAttachedAudio: () => {
+    set((state) => ({
+      audioSettings: { ...state.audioSettings, hookTracks: [], bodyTracks: [], ctaTracks: [], fullTracks: [] },
+      previewApproved: false
+    }))
+  },
+
   setCreateSubfolderPerProject: (value) => {
     set({ createSubfolderPerProject: value })
     window.api.setPreferences({ createSubfolderPerProject: value })
@@ -502,8 +583,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ activeModal: 'generationBusy' })
       return
     }
-    const { hooks, bodies, ctas, testSelection, exportSettings, overlays, silenceTrim, visualCta, frameSettings, frameFilePaths } =
-      get()
+    const {
+      hooks,
+      bodies,
+      ctas,
+      testSelection,
+      exportSettings,
+      overlays,
+      silenceTrim,
+      visualCta,
+      frameSettings,
+      frameFilePaths,
+      audioSettings
+    } = get()
     const hook = hooks.find((h) => h.id === testSelection.hookId) ?? hooks[0]
     const body = bodies.find((b) => b.id === testSelection.bodyId) ?? bodies[0]
     const cta = ctas.find((c) => c.id === testSelection.ctaId) ?? ctas[0]
@@ -528,6 +620,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         framesEligible && frameFilePaths.length > 0
           ? frameFilePaths[Math.floor(Math.random() * frameFilePaths.length)]
           : null
+      const pickRandomTrack = (files: { path: string }[]): string | null =>
+        files.length > 0 ? files[Math.floor(Math.random() * files.length)].path : null
+      const hookAudioPath = pickRandomTrack(audioSettings.hookTracks)
+      const bodyAudioPath = pickRandomTrack(audioSettings.bodyTracks)
+      const ctaAudioPath = pickRandomTrack(audioSettings.ctaTracks)
+      const fullAudioPath = pickRandomTrack(audioSettings.fullTracks)
       // The underlying clip is rendered WITHOUT burning the text in: the
       // Preview screen draws the hook/CTA text itself as a live, draggable
       // HTML overlay (using the exact same font/size/wrap math as ffmpeg),
@@ -543,6 +641,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         hookTextContent: null,
         visualCtaPhrase: null,
         framePath,
+        muteHook: audioSettings.muteHook,
+        muteBody: audioSettings.muteBody,
+        muteCta: audioSettings.muteCta,
+        hookAudioPath,
+        bodyAudioPath,
+        ctaAudioPath,
+        fullAudioPath,
         variation: rolledVariation
       })
       set({ testPreviewPath: path, testPreviewLoading: false, previewExampleCtaPhrase: ctaPhrase })
@@ -600,7 +705,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       visualCta,
       creativeVariation,
       projectSeed,
-      frameSettings
+      frameSettings,
+      audioSettings
     } = state
     const outputFolder = get().computeOutputFolderPath()
     if (!outputFolder) return
@@ -625,7 +731,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       visualCtaEnabled: visualCta.enabled,
       creativeVariation,
       projectSeed,
-      frameFilePaths
+      frameFilePaths,
+      audioSettings
     })
 
     set({ activeModal: null })
@@ -734,6 +841,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       visualCta: DEFAULT_VISUAL_CTA_SETTINGS,
       creativeVariation: DEFAULT_CREATIVE_VARIATION_SETTINGS,
       silenceTrim: DEFAULT_SILENCE_TRIM_SETTINGS,
+      audioSettings: DEFAULT_AUDIO_SETTINGS,
       overlays: DEFAULT_OVERLAYS_STATE,
       projectSeed: makeProjectSeed(),
       previewApproved: false,
@@ -766,6 +874,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       projectSeed: state.projectSeed,
       preview: { approved: state.previewApproved, configurationHash: state.previewConfigurationHash },
       frameSettings: state.frameSettings,
+      audioSettings: state.audioSettings,
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
@@ -800,6 +909,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       previewApproved: project.preview.approved,
       previewConfigurationHash: project.preview.configurationHash,
       frameSettings: project.frameSettings,
+      audioSettings: project.audioSettings,
       generation: emptyGeneration,
       currentView: 'home',
       activeModal: null

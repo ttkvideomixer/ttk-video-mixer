@@ -1,6 +1,7 @@
 import { getMissingGenerateRequirements, useAppStore } from '../state/useAppStore'
 import { calculateTotalCombinations } from '@shared/combinations'
 import { buildGenerationJobs } from '@shared/jobBuilder'
+import { DEFAULT_AUDIO_SETTINGS } from '@shared/defaults'
 import { formatNumberPtBr } from '../utils/format'
 
 const LIMIT_PRESETS = [100, 200, 500]
@@ -46,7 +47,8 @@ function GenerateBar(): JSX.Element {
       visualCtaEnabled: visualCta.enabled,
       creativeVariation,
       projectSeed,
-      frameFilePaths: []
+      frameFilePaths: [],
+      audioSettings: DEFAULT_AUDIO_SETTINGS
     })
     await window.api.exportCombinationsCsv(jobs)
   }

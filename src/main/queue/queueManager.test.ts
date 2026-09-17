@@ -41,7 +41,14 @@ function makeJob(id: string, outputPath: string): GenerationJob {
     variationSignature: `sig-${id}`,
     sha256: null,
     visualFingerprint: null,
-    attempt: 0
+    attempt: 0,
+    muteHook: false,
+    muteBody: false,
+    muteCta: false,
+    hookAudioPath: null,
+    bodyAudioPath: null,
+    ctaAudioPath: null,
+    fullAudioPath: null
   }
 }
 

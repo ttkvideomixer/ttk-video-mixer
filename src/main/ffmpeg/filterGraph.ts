@@ -26,6 +26,25 @@ export interface ResolvedTextOverlay {
   fontSizeRatio: number
 }
 
+/**
+ * Muting is a simple per-category on/off over the segment's OWN audio.
+ * Attached tracks are independent and additive (mixed in via `amix`, not a
+ * replacement) — muting a category and attaching a track to it is exactly
+ * "replace the original with my track", since there's nothing left to mix
+ * with; attaching without muting layers the track on top of the original.
+ */
+export interface AudioExtras {
+  muteHook: boolean
+  muteBody: boolean
+  muteCta: boolean
+  /** Looped/trimmed to exactly that segment's effective duration — one track per segment, independent pools. */
+  hookTrackPath: string | null
+  bodyTrackPath: string | null
+  ctaTrackPath: string | null
+  /** Looped/trimmed to the WHOLE finished video's duration (hook start to CTA end), mixed in after concat. */
+  fullTrackPath: string | null
+}
+
 export interface RenderExtras {
   variation: VariationParameters
   hookText: ResolvedTextOverlay | null
@@ -33,6 +52,7 @@ export interface RenderExtras {
   fontFilePath: string
   /** Moldura: absolute path to a transparent-center PNG overlaid on top of the WHOLE finished video (all 3 segments), full duration. */
   frameOverlayPath: string | null
+  audio: AudioExtras
 }
 
 export interface FilterGraphResult {
@@ -48,7 +68,16 @@ const NO_EXTRAS: RenderExtras = {
   hookText: null,
   visualCta: null,
   fontFilePath: '',
-  frameOverlayPath: null
+  frameOverlayPath: null,
+  audio: {
+    muteHook: false,
+    muteBody: false,
+    muteCta: false,
+    hookTrackPath: null,
+    bodyTrackPath: null,
+    ctaTrackPath: null,
+    fullTrackPath: null
+  }
 }
 
 export function resolveTargetSize(settings: ExportSettings, segments: SegmentInfo[]): { width: number; height: number } {
@@ -211,19 +240,55 @@ export function buildFilterGraph(
     filterLines.push(`[${i}:v]${chain}${fpsFilter}[${vLabel}]`)
     videoLabels.push(vLabel)
 
+    // Which per-category mute flag / attached track applies to this segment
+    // (0=hook, 1=body, 2=cta) — same index the video side already uses for
+    // isHookSegment/isCtaSegment above.
+    const muted = i === 0 ? extras.audio.muteHook : i === 1 ? extras.audio.muteBody : extras.audio.muteCta
+    const trackPath = i === 0 ? extras.audio.hookTrackPath : i === 1 ? extras.audio.bodyTrackPath : extras.audio.ctaTrackPath
+    const segmentDuration = computeEffectiveDuration(segment, variation)
+
     const aLabel = `a${i}`
-    if (segment.hasAudio) {
+    // Collects every audio source that should be audible during this
+    // segment — the original clip's own audio (unless muted or absent) and
+    // an attached track (if one was assigned to this category for this
+    // job) — then mixes whichever ones are present. Attaching is additive,
+    // not a replacement: with both present they play together via amix.
+    const mixLabels: string[] = []
+
+    if (segment.hasAudio && !muted) {
+      const origLabel = `aOrig${i}`
       const audioPre = hasTrim ? `atrim=start=${segment.trimStartSeconds.toFixed(3)}:end=${trimEnd.toFixed(3)},asetpts=PTS-STARTPTS,` : ''
       const audioSpeed = variation.speed !== 1 ? `atempo=${variation.speed.toFixed(3)},` : ''
       filterLines.push(
-        `[${i}:a]${audioPre}${audioSpeed}aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[${aLabel}]`
+        `[${i}:a]${audioPre}${audioSpeed}aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[${origLabel}]`
       )
+      mixLabels.push(origLabel)
+    }
+
+    if (trackPath) {
+      const trackInputIndex = nextInputIndex
+      nextInputIndex++
+      // -stream_loop -1 repeats the file indefinitely; the atrim below then
+      // either cuts it short (track longer than the segment) or is simply
+      // never reached (track shorter, so the loop keeps it filled) — one
+      // mechanism handles both "loop if short" and "cut if long".
+      extraInputArgs.push('-stream_loop', '-1', '-i', trackPath)
+      const trackLabel = `aTrack${i}`
+      filterLines.push(
+        `[${trackInputIndex}:a]atrim=0:${segmentDuration.toFixed(3)},asetpts=PTS-STARTPTS,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[${trackLabel}]`
+      )
+      mixLabels.push(trackLabel)
+    }
+
+    if (mixLabels.length === 2) {
+      filterLines.push(`[${mixLabels[0]}][${mixLabels[1]}]amix=inputs=2:duration=first:dropout_transition=0[${aLabel}]`)
+    } else if (mixLabels.length === 1) {
+      filterLines.push(`[${mixLabels[0]}]anull[${aLabel}]`)
     } else {
       const silentInputIndex = nextInputIndex
       nextInputIndex++
       extraInputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000')
-      const silentDuration = computeEffectiveDuration(segment, variation)
-      filterLines.push(`[${silentInputIndex}:a]atrim=0:${silentDuration.toFixed(3)},asetpts=PTS-STARTPTS[${aLabel}]`)
+      filterLines.push(`[${silentInputIndex}:a]atrim=0:${segmentDuration.toFixed(3)},asetpts=PTS-STARTPTS[${aLabel}]`)
     }
     audioLabels.push(aLabel)
   })
@@ -245,13 +310,20 @@ export function buildFilterGraph(
     }
   }
 
+  // Upper bound on total output duration (exact for cut/concat; a safe
+  // overestimate for fade/crossfade, which trim a little at the joins) —
+  // used to give looped still-image/audio inputs a finite length, never to
+  // trim the actual output.
+  const maxDuration = segments.reduce((sum, s) => sum + computeEffectiveDuration(s, variation), 0)
+
   if (extras.frameOverlayPath) {
-    // Upper bound on total output duration (exact for cut/concat; a safe
-    // overestimate for fade/crossfade, which trim a little at the joins) —
-    // only used to give the looped still image a finite length, never to
-    // trim the actual output.
-    const maxDuration = segments.reduce((sum, s) => sum + computeEffectiveDuration(s, variation), 0)
     result = applyFrameOverlay(result, extras.frameOverlayPath, width, height, nextInputIndex, maxDuration)
+    nextInputIndex++
+  }
+
+  if (extras.audio.fullTrackPath) {
+    result = applyFullAudioOverlay(result, extras.audio.fullTrackPath, nextInputIndex, maxDuration)
+    nextInputIndex++
   }
 
   return result
@@ -284,6 +356,34 @@ function applyFrameOverlay(
     filterComplex: `${result.filterComplex};${frameChain};${overlayLine}`,
     videoOutputLabel: outLabel,
     audioOutputLabel: result.audioOutputLabel
+  }
+}
+
+/**
+ * Mixes a user-picked track across the WHOLE finished video (hook start to
+ * CTA end) into the final audio, independent of and additive with whatever
+ * is already playing per-segment (original audio and/or per-segment
+ * attached tracks). Same -stream_loop -1 + atrim mechanism as the
+ * per-segment tracks — repeats if the track is short, gets cut at the end
+ * if it's long — just bounded by the whole output's duration instead of a
+ * single segment's.
+ */
+function applyFullAudioOverlay(
+  result: FilterGraphResult,
+  trackPath: string,
+  trackInputIndex: number,
+  maxDuration: number
+): FilterGraphResult {
+  const trackLabel = 'aFull'
+  const outLabel = 'outa_full'
+  const trackChain = `[${trackInputIndex}:a]atrim=0:${maxDuration.toFixed(3)},asetpts=PTS-STARTPTS,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[${trackLabel}]`
+  const mixLine = `[${result.audioOutputLabel}][${trackLabel}]amix=inputs=2:duration=first:dropout_transition=0[${outLabel}]`
+
+  return {
+    extraInputArgs: [...result.extraInputArgs, '-stream_loop', '-1', '-i', trackPath],
+    filterComplex: `${result.filterComplex};${trackChain};${mixLine}`,
+    videoOutputLabel: result.videoOutputLabel,
+    audioOutputLabel: outLabel
   }
 }
 

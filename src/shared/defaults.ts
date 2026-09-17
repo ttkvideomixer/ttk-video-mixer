@@ -1,4 +1,5 @@
 import type {
+  AudioSettings,
   CombinationSelectionSettings,
   CreativeVariationSettings,
   ExportSettings,
@@ -92,12 +93,23 @@ export const DEFAULT_FRAME_SETTINGS: FrameSettings = {
   enabled: false
 }
 
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  muteHook: false,
+  muteBody: false,
+  muteCta: false,
+  hookTracks: [],
+  bodyTracks: [],
+  ctaTracks: [],
+  fullTracks: []
+}
+
 export const MAX_VARIATION_RETRY_ATTEMPTS = 5
 
 export const DEFAULT_PREFIX = 'video'
 
 export const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.mkv', '.webm', '.m4v', '.avi']
 export const SUPPORTED_FRAME_EXTENSIONS = ['.png']
+export const SUPPORTED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac', '.wma']
 /** Only this resolution preset matches what the "molduras" PNGs are designed for. */
 export const FRAME_ELIGIBLE_RESOLUTION = '1080x1920'
 

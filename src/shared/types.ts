@@ -61,6 +61,33 @@ export interface FrameSettings {
   enabled: boolean
 }
 
+/** A user-imported audio file available to attach to generated videos. */
+export interface AudioFile {
+  id: string
+  name: string
+  path: string
+}
+
+/**
+ * Audio control for generation: muting the original audio of each category
+ * independently, and/or attaching one or more of the user's own tracks —
+ * either scoped to a single category (hook/body/cta) or spanning the whole
+ * combined video (hook start to CTA end). Each pool with tracks in it gets
+ * one randomly assigned per generated video (same distribute-without-repeat
+ * mechanism as hook texts/CTA phrases/molduras); an empty pool means that
+ * slot has nothing attached — there's no separate "enabled" flag to keep in
+ * sync with the list.
+ */
+export interface AudioSettings {
+  muteHook: boolean
+  muteBody: boolean
+  muteCta: boolean
+  hookTracks: AudioFile[]
+  bodyTracks: AudioFile[]
+  ctaTracks: AudioFile[]
+  fullTracks: AudioFile[]
+}
+
 export type JobStatus = 'pending' | 'processing' | 'done' | 'error' | 'skipped' | 'canceled'
 
 export interface Combination {
@@ -161,6 +188,13 @@ export interface GenerationJob {
   hookTextContent: string | null
   visualCtaPhrase: string | null
   framePath: string | null
+  muteHook: boolean
+  muteBody: boolean
+  muteCta: boolean
+  hookAudioPath: string | null
+  bodyAudioPath: string | null
+  ctaAudioPath: string | null
+  fullAudioPath: string | null
   variation: VariationParameters
   variationSignature: string
   sha256: string | null
@@ -197,6 +231,7 @@ export interface Project {
   projectSeed: number
   preview: PreviewState
   frameSettings: FrameSettings
+  audioSettings: AudioSettings
   createdAt: number
   updatedAt: number
 }
@@ -229,6 +264,13 @@ export interface RenderJobInput {
   hookTextContent: string | null
   visualCtaPhrase: string | null
   framePath: string | null
+  muteHook: boolean
+  muteBody: boolean
+  muteCta: boolean
+  hookAudioPath: string | null
+  bodyAudioPath: string | null
+  ctaAudioPath: string | null
+  fullAudioPath: string | null
   variation: VariationParameters
   overlays: PreviewOverlaysState
   silenceTrimEnabled: boolean

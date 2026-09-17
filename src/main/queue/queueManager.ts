@@ -208,6 +208,13 @@ export class GenerationQueue {
       hookTextContent: job.hookTextContent,
       visualCtaPhrase: job.visualCtaPhrase,
       framePath: job.framePath,
+      muteHook: job.muteHook,
+      muteBody: job.muteBody,
+      muteCta: job.muteCta,
+      hookAudioPath: job.hookAudioPath,
+      bodyAudioPath: job.bodyAudioPath,
+      ctaAudioPath: job.ctaAudioPath,
+      fullAudioPath: job.fullAudioPath,
       variation: job.variation
     }
   }

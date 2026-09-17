@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildGenerationJobs, type BuildJobsParams } from './jobBuilder'
 import type { CreativeVariationSettings, VideoFile } from './types'
-import { DEFAULT_CREATIVE_VARIATION_SETTINGS } from './defaults'
+import { DEFAULT_AUDIO_SETTINGS, DEFAULT_CREATIVE_VARIATION_SETTINGS } from './defaults'
 
 function makeVideos(category: VideoFile['category'], count: number): VideoFile[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -32,7 +32,8 @@ function baseParams(): BuildJobsParams {
     visualCtaEnabled: false,
     creativeVariation: { ...DEFAULT_CREATIVE_VARIATION_SETTINGS, enabled: false },
     projectSeed: 42,
-    frameFilePaths: []
+    frameFilePaths: [],
+    audioSettings: DEFAULT_AUDIO_SETTINGS
   }
 }
 
@@ -117,6 +118,48 @@ describe('buildGenerationJobs', () => {
 
     const counts = frames.map((f) => jobs.filter((j) => j.framePath === f).length)
     expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1)
+  })
+
+  it('assigns audio tracks to every job only when tracks are provided for that pool', () => {
+    const params = baseParams()
+    params.audioSettings = {
+      ...DEFAULT_AUDIO_SETTINGS,
+      hookTracks: [
+        { id: 'h1', name: 'h1.mp3', path: 'C:\\audio\\h1.mp3' },
+        { id: 'h2', name: 'h2.mp3', path: 'C:\\audio\\h2.mp3' }
+      ],
+      fullTracks: [{ id: 'f1', name: 'f1.mp3', path: 'C:\\audio\\f1.mp3' }]
+    }
+    const jobs = buildGenerationJobs(params)
+
+    expect(jobs.every((j) => j.hookAudioPath !== null && ['C:\\audio\\h1.mp3', 'C:\\audio\\h2.mp3'].includes(j.hookAudioPath))).toBe(true)
+    expect(jobs.every((j) => j.fullAudioPath === 'C:\\audio\\f1.mp3')).toBe(true)
+    expect(jobs.every((j) => j.bodyAudioPath === null && j.ctaAudioPath === null)).toBe(true)
+
+    const withoutAudio = buildGenerationJobs(baseParams())
+    expect(withoutAudio.every((j) => j.hookAudioPath === null && j.bodyAudioPath === null && j.ctaAudioPath === null && j.fullAudioPath === null)).toBe(true)
+  })
+
+  it('uses every audio track a near-equal number of times across the batch', () => {
+    const params = baseParams()
+    const tracks = [
+      { id: 'b1', name: 'b1.mp3', path: 'C:\\audio\\b1.mp3' },
+      { id: 'b2', name: 'b2.mp3', path: 'C:\\audio\\b2.mp3' },
+      { id: 'b3', name: 'b3.mp3', path: 'C:\\audio\\b3.mp3' }
+    ]
+    params.audioSettings = { ...DEFAULT_AUDIO_SETTINGS, bodyTracks: tracks }
+    const jobs = buildGenerationJobs(params)
+    expect(jobs.length).toBeGreaterThan(tracks.length)
+
+    const counts = tracks.map((t) => jobs.filter((j) => j.bodyAudioPath === t.path).length)
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1)
+  })
+
+  it('copies mute flags from audioSettings onto every job unchanged', () => {
+    const params = baseParams()
+    params.audioSettings = { ...DEFAULT_AUDIO_SETTINGS, muteHook: true, muteCta: true }
+    const jobs = buildGenerationJobs(params)
+    expect(jobs.every((j) => j.muteHook === true && j.muteBody === false && j.muteCta === true)).toBe(true)
   })
 
   it('gives every job a variation signature that is unique across the whole batch', () => {

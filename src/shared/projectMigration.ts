@@ -1,5 +1,6 @@
 import type { Project } from './types'
 import {
+  DEFAULT_AUDIO_SETTINGS,
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
@@ -47,6 +48,14 @@ export function migrateProject(raw: Record<string, unknown>): Project {
     projectSeed: p.projectSeed ?? Date.now(),
     preview: { ...DEFAULT_PREVIEW_STATE, ...p.preview },
     frameSettings: { ...DEFAULT_FRAME_SETTINGS, ...p.frameSettings },
+    audioSettings: {
+      ...DEFAULT_AUDIO_SETTINGS,
+      ...p.audioSettings,
+      hookTracks: p.audioSettings?.hookTracks ?? [],
+      bodyTracks: p.audioSettings?.bodyTracks ?? [],
+      ctaTracks: p.audioSettings?.ctaTracks ?? [],
+      fullTracks: p.audioSettings?.fullTracks ?? []
+    },
     createdAt: p.createdAt ?? Date.now(),
     updatedAt: p.updatedAt ?? Date.now()
   }

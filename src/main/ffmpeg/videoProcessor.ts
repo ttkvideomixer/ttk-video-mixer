@@ -135,7 +135,16 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
       fontFilePath: input.hookTextContent || input.visualCtaPhrase ? getBundledFontPath() : '',
       hookText: await resolveOverlay(input.hookTextContent, input.overlays.hookText, width, height, tempFiles),
       visualCta: await resolveOverlay(input.visualCtaPhrase, input.overlays.visualCta, width, height, tempFiles),
-      frameOverlayPath: input.framePath
+      frameOverlayPath: input.framePath,
+      audio: {
+        muteHook: input.muteHook,
+        muteBody: input.muteBody,
+        muteCta: input.muteCta,
+        hookTrackPath: input.hookAudioPath,
+        bodyTrackPath: input.bodyAudioPath,
+        ctaTrackPath: input.ctaAudioPath,
+        fullTrackPath: input.fullAudioPath
+      }
     }
 
     const mainInputCount = 3

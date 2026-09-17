@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IpcChannels } from '@shared/ipcChannels'
 import type {
+  AudioFile,
   DiskSpaceInfo,
   FfmpegStatus,
   GenerationJob,
@@ -32,6 +33,8 @@ const api = {
     ipcRenderer.invoke(IpcChannels.describePaths, paths),
   chooseOutputFolder: (): Promise<string | null> => ipcRenderer.invoke(IpcChannels.chooseOutputFolder),
   listBundledFrames: (): Promise<string[]> => ipcRenderer.invoke(IpcChannels.listBundledFrames),
+  selectAudioFiles: (): Promise<AudioFile[]> => ipcRenderer.invoke(IpcChannels.selectAudioFiles),
+  selectAudioFolder: (): Promise<AudioFile[]> => ipcRenderer.invoke(IpcChannels.selectAudioFolder),
   openPath: (path: string): Promise<void> => ipcRenderer.invoke(IpcChannels.openPath, path),
   showInFolder: (path: string): Promise<void> => ipcRenderer.invoke(IpcChannels.showInFolder, path),
   getDiskSpace: (path: string): Promise<DiskSpaceInfo> => ipcRenderer.invoke(IpcChannels.getDiskSpace, path),

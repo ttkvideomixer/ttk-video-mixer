@@ -5,6 +5,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { basename, extname, join } from 'node:path'
 import { IpcChannels } from '@shared/ipcChannels'
 import type {
+  AudioFile,
   DiskSpaceInfo,
   FfmpegStatus,
   GenerationJob,
@@ -14,13 +15,14 @@ import type {
   RenderJobInput,
   StartGenerationResult
 } from '@shared/types'
-import { SUPPORTED_VIDEO_EXTENSIONS } from '@shared/defaults'
+import { SUPPORTED_AUDIO_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS } from '@shared/defaults'
 import { resolveFfmpegPaths } from '../ffmpeg/binaries'
 import { probeVideoFile } from '../ffmpeg/probe'
 import { generateThumbnailDataUrl } from '../ffmpeg/thumbnail'
 import { processJob } from '../ffmpeg/videoProcessor'
 import { listVideoFilesInFolder } from '../utils/videoImport'
 import { listBundledFrames } from '../utils/frameImport'
+import { listAudioFilesInFolder } from '../utils/audioImport'
 import { getDiskSpaceInfo } from '../utils/diskSpace'
 import { buildCombinationsCsv } from '../utils/csv'
 import { getPreferences, setPreferences } from '../store/preferences'
@@ -61,6 +63,10 @@ async function describeVideoFile(filePath: string): Promise<ImportedVideoDescrip
   }
 
   return base
+}
+
+function describeAudioFile(filePath: string): AudioFile {
+  return { id: randomUUID(), name: basename(filePath), path: filePath }
 }
 
 let activeQueue: GenerationQueue | null = null
@@ -106,6 +112,26 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   })
 
   ipcMain.handle(IpcChannels.listBundledFrames, (): Promise<string[]> => listBundledFrames())
+
+  ipcMain.handle(IpcChannels.selectAudioFiles, async (): Promise<AudioFile[]> => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Selecionar áudios',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Áudios', extensions: SUPPORTED_AUDIO_EXTENSIONS.map((e) => e.replace('.', '')) }]
+    })
+    if (result.canceled) return []
+    return result.filePaths.map(describeAudioFile)
+  })
+
+  ipcMain.handle(IpcChannels.selectAudioFolder, async (): Promise<AudioFile[]> => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Selecionar pasta de áudios',
+      properties: ['openDirectory']
+    })
+    if (result.canceled || result.filePaths.length === 0) return []
+    const files = await listAudioFilesInFolder(result.filePaths[0])
+    return files.map(describeAudioFile)
+  })
 
   ipcMain.handle(IpcChannels.openPath, async (_event, targetPath: string) => {
     const error = await shell.openPath(targetPath)

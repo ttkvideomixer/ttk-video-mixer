@@ -1,4 +1,4 @@
-import type { CombinationSelectionSettings, CreativeVariationSettings, GenerationJob, HookText, VideoFile } from './types'
+import type { AudioSettings, CombinationSelectionSettings, CreativeVariationSettings, GenerationJob, HookText, VideoFile } from './types'
 import { generateCombinations, selectCombinations } from './combinations'
 import { buildCombinationLabel, buildOutputFileName } from './naming'
 import { joinWindowsPath } from './pathUtils'
@@ -20,6 +20,7 @@ export interface BuildJobsParams {
   projectSeed: number
   /** Molduras: pass a non-empty list only when the feature is enabled AND the export resolution is frame-eligible (9:16) — see FRAME_ELIGIBLE_RESOLUTION. */
   frameFilePaths: string[]
+  audioSettings: AudioSettings
 }
 
 interface ExpandedEntry {
@@ -49,7 +50,8 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
     visualCtaEnabled,
     creativeVariation,
     projectSeed,
-    frameFilePaths
+    frameFilePaths,
+    audioSettings
   } = params
 
   const all = generateCombinations(hooks.length, bodies.length, ctas.length)
@@ -88,6 +90,25 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
   const distributedFramePaths = frameFilePaths.length > 0 ? distributeEvenly(frameFilePaths, total, projectSeed + 4007) : null
   const variationSequence = buildVariationSequence(creativeVariation, total, projectSeed + 3001)
 
+  // Same distribute-without-repeat mechanism as hook texts/CTA phrases/
+  // molduras, one independent pool per audio slot so they don't correlate.
+  const distributedHookAudio =
+    audioSettings.hookTracks.length > 0
+      ? distributeEvenly(audioSettings.hookTracks.map((t) => t.path), total, projectSeed + 5011)
+      : null
+  const distributedBodyAudio =
+    audioSettings.bodyTracks.length > 0
+      ? distributeEvenly(audioSettings.bodyTracks.map((t) => t.path), total, projectSeed + 6007)
+      : null
+  const distributedCtaAudio =
+    audioSettings.ctaTracks.length > 0
+      ? distributeEvenly(audioSettings.ctaTracks.map((t) => t.path), total, projectSeed + 7001)
+      : null
+  const distributedFullAudio =
+    audioSettings.fullTracks.length > 0
+      ? distributeEvenly(audioSettings.fullTracks.map((t) => t.path), total, projectSeed + 8009)
+      : null
+
   const jobs = selected.map((entry, i) => {
     const hook = hooks[entry.hookIndex]
     const body = bodies[entry.bodyIndex]
@@ -97,6 +118,10 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
     const hookText = textIndex !== null && textIndex !== undefined ? enabledHookTexts[textIndex] : null
     const visualCtaPhrase = distributedCtaPhrases ? distributedCtaPhrases[i] : null
     const framePath = distributedFramePaths ? distributedFramePaths[i] : null
+    const hookAudioPath = distributedHookAudio ? distributedHookAudio[i] : null
+    const bodyAudioPath = distributedBodyAudio ? distributedBodyAudio[i] : null
+    const ctaAudioPath = distributedCtaAudio ? distributedCtaAudio[i] : null
+    const fullAudioPath = distributedFullAudio ? distributedFullAudio[i] : null
 
     const outputFileName = buildOutputFileName({
       prefix,
@@ -128,6 +153,10 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       hookText ? hookText.id : 'HT0',
       ctaPhraseId >= 0 ? `VC${ctaPhraseId}` : 'VC0',
       framePath ?? 'FR0',
+      hookAudioPath ?? 'HA0',
+      bodyAudioPath ?? 'BA0',
+      ctaAudioPath ?? 'CA0',
+      fullAudioPath ?? 'FA0',
       buildVariationSignature(variation)
     ].join('|')
 
@@ -157,6 +186,13 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       hookTextContent: hookText ? hookText.text : null,
       visualCtaPhrase,
       framePath,
+      muteHook: audioSettings.muteHook,
+      muteBody: audioSettings.muteBody,
+      muteCta: audioSettings.muteCta,
+      hookAudioPath,
+      bodyAudioPath,
+      ctaAudioPath,
+      fullAudioPath,
       variation,
       variationSignature,
       sha256: null,
