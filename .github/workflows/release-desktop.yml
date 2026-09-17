@@ -42,16 +42,36 @@ jobs:
       # is what blocked v1.4.0/v1.4.1 (90-day-default build artifacts from past
       # releases had piled up to ~11GB and hit the account's quota, and that
       # usage figure only recalculates every 6-12h even after deleting them).
+      #
+      # NOT softprops/action-gh-release: a one-shot upload with no retry has
+      # failed outright on transient GitHub-side errors (a 500 page, "Error
+      # saving asset", "Headers Timeout") on real release attempts — for
+      # BOTH the small Windows files and the large macOS .dmg, so this isn't
+      # only a large-file problem. `gh release upload` per file with a retry
+      # loop survives that; `--clobber` makes re-running this step safe.
       - name: Publish GitHub Release (Windows assets)
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          files: |
-            release/TTK-Video-Mixer-Setup-*.exe
-            release/TTK-Video-Mixer-Setup-*.exe.blockmap
-            release/latest.yml
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --generate-notes
+          fi
+          for f in release/TTK-Video-Mixer-Setup-*.exe release/TTK-Video-Mixer-Setup-*.exe.blockmap release/latest.yml; do
+            echo "Uploading $f..."
+            for attempt in 1 2 3 4 5; do
+              if gh release upload "${{ github.ref_name }}" "$f" --clobber; then
+                echo "Uploaded $f"
+                break
+              fi
+              if [ "$attempt" = 5 ]; then
+                echo "Failed to upload $f after 5 attempts"
+                exit 1
+              fi
+              echo "Attempt $attempt failed, retrying in 15s..."
+              sleep 15
+            done
+          done
 
   build-macos:
     needs: build-windows
@@ -82,19 +102,11 @@ jobs:
 
       # needs: build-windows makes this run after the release already exists
       # (created above) instead of racing it — this just adds more files to
-      # that same release.
-      #
-      # NOT softprops/action-gh-release here (unlike the Windows job): the
-      # universal macOS build's .dmg is large enough (~200MB+, bundling both
-      # x64 and arm64 Electron runtimes) that its upload has repeatedly
-      # failed ("Error saving asset" / "Headers Timeout" / a transient
-      # GitHub 500 page) across multiple real release attempts, while the
-      # smaller .zip/.yml alongside it succeeded every time — a one-shot
-      # action with no retry turns a transient upload hiccup into a fully
-      # failed job. `gh release upload` per-file with a retry loop survives
-      # that; `--clobber` makes re-running this step after a partial
-      # success safe (already-uploaded files just get overwritten with the
-      # same bytes, not duplicated).
+      # that same release. Same per-file retry approach as the Windows job
+      # above (see its comment) — the macOS .dmg is also the largest single
+      # asset either job uploads (~200MB+, bundles both x64 and arm64
+      # Electron runtimes), so it's the one most exposed to a transient
+      # upload hiccup turning into a fully failed job.
       - name: Publish GitHub Release (macOS assets)
         env:
           GH_TOKEN: ${{ github.token }}
