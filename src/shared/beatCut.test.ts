@@ -26,10 +26,10 @@ describe('resolveBeatBoundaries', () => {
   })
 
   it('merges beats closer together than the minimum chunk length', () => {
-    // 600bpm -> 0.1s interval, well under the 0.12s minimum chunk size.
+    // 600bpm -> 0.1s interval, well under the 0.35s minimum chunk size.
     const boundaries = resolveBeatBoundaries({ bpm: 600, offsetSeconds: 0 }, 4, 1)
     for (let i = 1; i < boundaries.length; i++) {
-      expect(boundaries[i] - boundaries[i - 1]).toBeGreaterThanOrEqual(0.12 - 1e-9)
+      expect(boundaries[i] - boundaries[i - 1]).toBeGreaterThanOrEqual(0.35 - 1e-9)
     }
     expect(boundaries[0]).toBe(0)
     expect(boundaries[boundaries.length - 1]).toBe(1)

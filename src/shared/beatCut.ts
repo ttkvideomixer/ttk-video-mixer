@@ -1,8 +1,18 @@
 import type { BeatGrid, BeatTransitionStyle } from './types'
 import { mulberry32, seededShuffle } from './rng'
 
-/** Below this, a chunk is too short for an xfade transition to look clean — merge it into its neighbor instead. */
-const MIN_CHUNK_SECONDS = 0.12
+/**
+ * Below this, a chunk is too short for an xfade transition to look clean —
+ * merge it into its neighbor instead. Was 0.12s (~3.6 frames at 30fps) —
+ * confirmed with a real render that at that floor, the transition duration
+ * this feeds into (see clampTransitionDuration below) shrinks to under a
+ * single frame, making it visually invisible: the cut just jumps straight to
+ * the next chunk with no visible wipe/slide/zoom at all, which reads as the
+ * video "freezing" on the low-motion source footage right before the jump
+ * rather than a deliberate transition. 0.35s (~10 frames) leaves enough room
+ * for that floor to actually render as a few visible frames of transition.
+ */
+const MIN_CHUNK_SECONDS = 0.35
 
 export interface ChunkPlan {
   /** [0, t1, ..., tK] in seconds, within the segment's own local timeline. */
@@ -64,7 +74,13 @@ function sanitizeBoundaries(boundaries: number[], segmentDuration: number): numb
   for (const b of sorted) {
     if (b - merged[merged.length - 1] >= MIN_CHUNK_SECONDS) merged.push(b)
   }
-  if (merged.length === 1 || merged[merged.length - 1] < segmentDuration - 0.001) {
+  // The loop above only guarantees every ACCEPTED gap meets the minimum —
+  // the leftover tail from the last accepted point to segmentDuration was
+  // never checked, so it could end up short (confirmed: with a 600bpm grid
+  // this left a ~0.2s final chunk against a 0.35s floor). Fold it into the
+  // previous chunk instead of ending on a too-short final piece.
+  const remaining = segmentDuration - merged[merged.length - 1]
+  if (merged.length === 1 || remaining >= MIN_CHUNK_SECONDS) {
     merged.push(segmentDuration)
   } else {
     merged[merged.length - 1] = segmentDuration

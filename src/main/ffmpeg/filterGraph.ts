@@ -379,9 +379,19 @@ export function buildFilterGraph(
   return result
 }
 
-/** Never let an xfade/acrossfade join eat more than ~30% of either neighboring chunk — chunks can be as short as one beat interval. */
+/**
+ * Never let an xfade/acrossfade join eat more than ~30% of either
+ * neighboring chunk — chunks can be as short as one beat interval. The 0.05s
+ * floor here used to combine with short beat-driven chunks to produce
+ * transitions under a single frame — visually indistinguishable from a hard
+ * cut with no effect at all, which is what made a beat-cut segment look like
+ * it "freezes" on the low-motion chunk right before an abrupt jump instead
+ * of showing the chosen transition. 0.15s (~4-5 frames at 30fps) is short
+ * enough to still feel snappy but long enough for a wipe/slide/zoom/etc. to
+ * actually be visible — confirmed with a real render.
+ */
 function clampTransitionDuration(a: number, b: number): number {
-  return Math.min(0.5, Math.max(0.05, Math.min(a, b) * 0.3))
+  return Math.min(0.5, Math.max(0.15, Math.min(a, b) * 0.3))
 }
 
 /**
