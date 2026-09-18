@@ -50,7 +50,9 @@ import { sanitizeFileNamePart } from '@shared/sanitize'
 import { computePreviewConfigurationHash, type RenderAffectingConfig } from '@shared/previewConfig'
 import { buildVariationSequence } from '@shared/variationParams'
 import { distributeCtaPhrases } from '@shared/ctaPhrases'
+import { RESOLUTION_MAP } from '@shared/resolutions'
 import { detectBeatGrid } from '../utils/beatDetection'
+import { getOrRenderTextOverlayImage } from '../utils/renderTextOverlay'
 
 function toVideoFile(descriptor: ImportedVideoDescriptor, category: VideoCategory, order: number): VideoFile {
   return {
@@ -90,6 +92,38 @@ async function resolveBeatGrids(paths: (string | null)[]): Promise<Map<string, B
   if (uniquePaths.length === 0) return new Map()
   const entries = await Promise.all(uniquePaths.map(async (path) => [path, await detectBeatGrid(path)] as const))
   return new Map(entries)
+}
+
+/** Mirrors filterGraph.ts's resolveTargetSize 'original' branch — the reference hook's own dimensions, rounded up to even. */
+function computeTargetSize(resolution: ExportSettings['resolution'], referenceWidth: number | null, referenceHeight: number | null): { width: number; height: number } {
+  if (resolution !== 'original') return RESOLUTION_MAP[resolution]
+  const width = referenceWidth && referenceWidth % 2 === 0 ? referenceWidth : referenceWidth ? referenceWidth + 1 : 1080
+  const height = referenceHeight && referenceHeight % 2 === 0 ? referenceHeight : referenceHeight ? referenceHeight + 1 : 1920
+  return { width, height }
+}
+
+/** Renders (once per distinct text, via getOrRenderTextOverlayImage's own cache) and attaches hookTextImagePath/visualCtaImagePath onto every job that needs one. */
+async function resolveTextImages(
+  jobs: GenerationJob[],
+  overlays: PreviewOverlaysState,
+  targetWidth: number,
+  targetHeight: number
+): Promise<void> {
+  const uniqueHookTexts = [...new Set(jobs.map((j) => j.hookTextContent).filter((t): t is string => t !== null))]
+  const uniqueCtaPhrases = [...new Set(jobs.map((j) => j.visualCtaPhrase).filter((t): t is string => t !== null))]
+  if (uniqueHookTexts.length === 0 && uniqueCtaPhrases.length === 0) return
+
+  const [hookEntries, ctaEntries] = await Promise.all([
+    Promise.all(uniqueHookTexts.map(async (text) => [text, await getOrRenderTextOverlayImage(text, overlays.hookText, targetWidth, targetHeight)] as const)),
+    Promise.all(uniqueCtaPhrases.map(async (text) => [text, await getOrRenderTextOverlayImage(text, overlays.visualCta, targetWidth, targetHeight)] as const))
+  ])
+  const hookMap = new Map(hookEntries)
+  const ctaMap = new Map(ctaEntries)
+
+  for (const job of jobs) {
+    job.hookTextImagePath = job.hookTextContent ? (hookMap.get(job.hookTextContent) ?? null) : null
+    job.visualCtaImagePath = job.visualCtaPhrase ? (ctaMap.get(job.visualCtaPhrase) ?? null) : null
+  }
 }
 
 interface GenerationState {
@@ -706,6 +740,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         silenceTrimEnabled: silenceTrim.enabled,
         hookTextContent: null,
         visualCtaPhrase: null,
+        hookTextImagePath: null,
+        visualCtaImagePath: null,
         framePath,
         muteHook: audioSettings.muteHook,
         muteBody: audioSettings.muteBody,
@@ -832,6 +868,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         job.fullBeatGrid = job.fullAudioPath ? (grids.get(job.fullAudioPath) ?? null) : null
       }
     }
+
+    const { width: targetWidth, height: targetHeight } = computeTargetSize(exportSettings.resolution, hooks[0]?.width ?? null, hooks[0]?.height ?? null)
+    await resolveTextImages(jobs, state.overlays, targetWidth, targetHeight)
 
     set({ activeModal: null })
 

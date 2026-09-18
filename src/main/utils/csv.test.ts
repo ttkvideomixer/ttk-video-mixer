@@ -27,6 +27,8 @@ function makeJob(overrides: Partial<GenerationJob> = {}): GenerationJob {
     hookTextId: null,
     hookTextContent: null,
     visualCtaPhrase: null,
+    hookTextImagePath: null,
+    visualCtaImagePath: null,
     framePath: null,
     variation: NEUTRAL_VARIATION_PARAMETERS,
     variationSignature: 'sig',

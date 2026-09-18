@@ -207,6 +207,8 @@ export class GenerationQueue {
       silenceTrimEnabled: this.options.silenceTrim.enabled,
       hookTextContent: job.hookTextContent,
       visualCtaPhrase: job.visualCtaPhrase,
+      hookTextImagePath: job.hookTextImagePath,
+      visualCtaImagePath: job.visualCtaImagePath,
       framePath: job.framePath,
       muteHook: job.muteHook,
       muteBody: job.muteBody,

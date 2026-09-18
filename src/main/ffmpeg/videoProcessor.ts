@@ -4,17 +4,7 @@ import { dirname } from 'node:path'
 import type { RenderJobInput } from '@shared/types'
 import { getFfmpegPath } from './binaries'
 import { probeVideoFile } from './probe'
-import {
-  buildFilterGraph,
-  computeEffectiveDuration,
-  resolveTargetSize,
-  resolveTextFit,
-  type RenderExtras,
-  type ResolvedTextOverlay,
-  type SegmentInfo
-} from './filterGraph'
-import { getBundledFontPath } from './font'
-import { writeTempTextFile, type TempTextFile } from './textFile'
+import { buildFilterGraph, computeEffectiveDuration, type RenderExtras, type SegmentInfo } from './filterGraph'
 import { getSilenceTrimCached } from '../store/silenceCache'
 import { computeFileSha256 } from '../utils/fileHash'
 import { computeVisualFingerprint } from './fingerprint'
@@ -76,32 +66,6 @@ async function buildSegmentInfo(path: string, silenceTrimEnabled: boolean): Prom
   }
 }
 
-async function resolveOverlay(
-  content: string | null,
-  overlay: RenderJobInput['overlays']['hookText'],
-  targetWidth: number,
-  targetHeight: number,
-  tempFiles: TempTextFile[]
-): Promise<ResolvedTextOverlay | null> {
-  if (!content) return null
-
-  const fit = resolveTextFit(content, overlay, targetWidth, targetHeight)
-  const lineTextFilePaths: string[] = []
-  for (const line of fit.lines) {
-    const tempFile = await writeTempTextFile([line])
-    tempFiles.push(tempFile)
-    lineTextFilePaths.push(tempFile.path)
-  }
-
-  return {
-    content,
-    overlay,
-    lines: fit.lines,
-    lineTextFilePaths,
-    fontSizeRatio: fit.fontSizeRatio
-  }
-}
-
 /**
  * Runs a single ffmpeg job that concatenates hook + body + cta into one
  * final video (applying silence trim, creative variation and text overlays
@@ -116,7 +80,6 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
   const tempOutputPath = `${input.outputPath}.tmp.mp4`
   let killedByCaller = false
   let child: ReturnType<typeof spawn> | null = null
-  const tempFiles: TempTextFile[] = []
 
   const promise = (async (): Promise<ProcessJobResult> => {
     const [hookBase, bodyBase, ctaBase] = await Promise.all([
@@ -128,13 +91,11 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
     await mkdir(dirname(input.outputPath), { recursive: true })
 
     const segments: [SegmentInfo, SegmentInfo, SegmentInfo] = [hookBase, bodyBase, ctaBase]
-    const { width, height } = resolveTargetSize(input.settings, segments)
 
     const extras: RenderExtras = {
       variation: input.variation,
-      fontFilePath: input.hookTextContent || input.visualCtaPhrase ? getBundledFontPath() : '',
-      hookText: await resolveOverlay(input.hookTextContent, input.overlays.hookText, width, height, tempFiles),
-      visualCta: await resolveOverlay(input.visualCtaPhrase, input.overlays.visualCta, width, height, tempFiles),
+      hookTextImagePath: input.hookTextImagePath,
+      visualCtaImagePath: input.visualCtaImagePath,
       frameOverlayPath: input.framePath,
       audio: {
         muteHook: input.muteHook,
@@ -180,13 +141,25 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
       // player can only seek precisely TO a keyframe — anything between
       // two gets rounded to the nearest one — so with sparse keyframes,
       // dragging the Preview scrubber to an arbitrary point visibly lands
-      // several seconds away from where it was released. Forcing a
-      // keyframe every ~1s (and disabling libx264's adaptive scene-cut
-      // placement, which would otherwise still space them unevenly) makes
-      // every point on the timeline land within ~1s of where it's dropped.
+      // several seconds away from where it was released. -g 30 caps the
+      // interval at ~1s so every point on the timeline lands within ~1s of
+      // where it's dropped.
+      //
+      // Deliberately NOT -sc_threshold 0 / -keyint_min 30 (an earlier
+      // version of this fix had both, "to keep keyframes evenly spaced"):
+      // that combination blocks libx264 from placing a keyframe at a real
+      // scene cut whenever one falls within 30 frames of the last forced
+      // one — which a hook/body/cta segment join almost always does, since
+      // segment durations are essentially never exact multiples of -g.
+      // Confirmed with ffprobe on a real concat: with that combination, the
+      // frame at the join encodes as a giant P-frame predicted against the
+      // PREVIOUS (completely different) segment instead of a clean I-frame
+      // — visibly corrupting/freezing up to a full GOP (~1s) right at every
+      // Gancho→Corpo / Corpo→CTA cut. Leaving sc_threshold/keyint_min at
+      // libx264's defaults lets it insert a proper keyframe at the cut
+      // (verified: the same test then shows a clean I-frame there) while
+      // -g 30 still caps the interval everywhere else.
       '-g', '30',
-      '-keyint_min', '30',
-      '-sc_threshold', '0',
       '-pix_fmt', 'yuv420p',
       '-c:a', 'aac',
       '-b:a', `${input.settings.audioBitrateKbps}k`,
@@ -252,14 +225,10 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
 
     onProgress?.(1)
     return { sha256, visualFingerprint }
-  })()
-    .catch(async (error) => {
-      await rm(tempOutputPath, { force: true }).catch(() => undefined)
-      throw error
-    })
-    .finally(() => {
-      Promise.all(tempFiles.map((f) => f.cleanup())).catch(() => undefined)
-    })
+  })().catch(async (error) => {
+    await rm(tempOutputPath, { force: true }).catch(() => undefined)
+    throw error
+  })
 
   return {
     promise,

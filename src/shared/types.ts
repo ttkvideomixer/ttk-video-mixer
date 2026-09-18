@@ -239,6 +239,10 @@ export interface GenerationJob {
   hookTextId: string | null
   hookTextContent: string | null
   visualCtaPhrase: string | null
+  /** Pre-rendered (Chromium canvas, not ffmpeg drawtext) transparent PNG at the target resolution — burning text in this way is what makes emoji render in full color instead of ffmpeg/freetype's monochrome-outline-only drawtext. Null when there's no hook text for this job. */
+  hookTextImagePath: string | null
+  /** Same mechanism as hookTextImagePath, for the CTA segment's auto-phrase overlay. */
+  visualCtaImagePath: string | null
   framePath: string | null
   muteHook: boolean
   muteBody: boolean
@@ -330,6 +334,8 @@ export interface RenderJobInput {
   settings: ExportSettings
   hookTextContent: string | null
   visualCtaPhrase: string | null
+  hookTextImagePath: string | null
+  visualCtaImagePath: string | null
   framePath: string | null
   muteHook: boolean
   muteBody: boolean

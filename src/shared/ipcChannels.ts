@@ -7,6 +7,7 @@ export const IpcChannels = {
   listBundledFrames: 'frames:list-bundled',
   selectAudioFiles: 'audio:select-files',
   selectAudioFolder: 'audio:select-folder',
+  saveOverlayImage: 'overlay:save-image',
   openPath: 'fs:open-path',
   showInFolder: 'fs:show-in-folder',
   getDiskSpace: 'fs:disk-space',

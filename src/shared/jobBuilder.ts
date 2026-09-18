@@ -200,6 +200,11 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       hookTextId: hookText ? hookText.id : null,
       hookTextContent: hookText ? hookText.text : null,
       visualCtaPhrase,
+      // Rendering text to a PNG needs a canvas (DOM), which this pure/testable
+      // builder doesn't have — resolved in a post-pass in the renderer (see
+      // useAppStore.ts confirmGenerate/runTestPreview), same as beat grids.
+      hookTextImagePath: null,
+      visualCtaImagePath: null,
       framePath,
       muteHook: audioSettings.muteHook,
       muteBody: audioSettings.muteBody,

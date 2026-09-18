@@ -35,6 +35,7 @@ const api = {
   listBundledFrames: (): Promise<string[]> => ipcRenderer.invoke(IpcChannels.listBundledFrames),
   selectAudioFiles: (): Promise<AudioFile[]> => ipcRenderer.invoke(IpcChannels.selectAudioFiles),
   selectAudioFolder: (): Promise<AudioFile[]> => ipcRenderer.invoke(IpcChannels.selectAudioFolder),
+  saveOverlayImage: (bytes: Uint8Array): Promise<string> => ipcRenderer.invoke(IpcChannels.saveOverlayImage, bytes),
   openPath: (path: string): Promise<void> => ipcRenderer.invoke(IpcChannels.openPath, path),
   showInFolder: (path: string): Promise<void> => ipcRenderer.invoke(IpcChannels.showInFolder, path),
   getDiskSpace: (path: string): Promise<DiskSpaceInfo> => ipcRenderer.invoke(IpcChannels.getDiskSpace, path),

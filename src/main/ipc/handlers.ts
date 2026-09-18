@@ -23,6 +23,7 @@ import { processJob } from '../ffmpeg/videoProcessor'
 import { listVideoFilesInFolder } from '../utils/videoImport'
 import { listBundledFrames } from '../utils/frameImport'
 import { listAudioFilesInFolder, hasUsableAudioStream } from '../utils/audioImport'
+import { writeTempImageFile } from '../utils/tempImage'
 import { getDiskSpaceInfo } from '../utils/diskSpace'
 import { buildCombinationsCsv } from '../utils/csv'
 import { getPreferences, setPreferences } from '../store/preferences'
@@ -132,6 +133,11 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     if (result.canceled || result.filePaths.length === 0) return []
     const files = await listAudioFilesInFolder(result.filePaths[0])
     return files.map(describeAudioFile)
+  })
+
+  ipcMain.handle(IpcChannels.saveOverlayImage, async (_event, bytes: Uint8Array): Promise<string> => {
+    const file = await writeTempImageFile(bytes)
+    return file.path
   })
 
   ipcMain.handle(IpcChannels.openPath, async (_event, targetPath: string) => {

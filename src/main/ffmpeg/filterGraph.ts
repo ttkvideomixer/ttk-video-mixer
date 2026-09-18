@@ -1,9 +1,7 @@
-import type { BeatGrid, BeatTransitionStyle, ExportSettings, OverlayTransform, TextMode, VariationParameters } from '@shared/types'
+import type { BeatGrid, BeatTransitionStyle, ExportSettings, TextMode, VariationParameters } from '@shared/types'
 import { RESOLUTION_MAP } from '@shared/resolutions'
 import { NEUTRAL_VARIATION_PARAMETERS } from '@shared/defaults'
-import { fitTextToWidth, LINE_HEIGHT_MULTIPLIER } from '@shared/textWrap'
 import { buildChunkPlan, prefixSums, resolveBeatBoundaries, type ChunkPlan } from '@shared/beatCut'
-import { escapeFfmpegFilterPath } from './ffmpegEscape'
 
 export interface SegmentInfo {
   path: string
@@ -14,17 +12,6 @@ export interface SegmentInfo {
   /** Seconds to trim from the start/end (silence removal). 0 when disabled or none detected. */
   trimStartSeconds: number
   trimEndSeconds: number
-}
-
-export interface ResolvedTextOverlay {
-  content: string
-  overlay: OverlayTransform
-  /** Wrapped lines, in order — one drawtext filter is emitted per line (see buildDrawTextStage). */
-  lines: string[]
-  /** Absolute path to a temp UTF-8 textfile for each line, same order as `lines`. */
-  lineTextFilePaths: string[]
-  /** From {@link resolveTextFit}: how much to shrink the base font size so the wrapped text fits. */
-  fontSizeRatio: number
 }
 
 /**
@@ -71,14 +58,14 @@ export interface BeatCutExtras {
 
 export interface RenderExtras {
   variation: VariationParameters
-  hookText: ResolvedTextOverlay | null
-  visualCta: ResolvedTextOverlay | null
-  fontFilePath: string
+  /** Pre-rendered (Chromium canvas, not ffmpeg drawtext — see renderer/utils/renderTextOverlay.ts) transparent PNG at the target resolution, already positioned. Null when there's no text for this job/segment. */
+  hookTextImagePath: string | null
+  visualCtaImagePath: string | null
   /** Moldura: absolute path to a transparent-center PNG overlaid on top of the WHOLE finished video (all 3 segments), full duration. */
   frameOverlayPath: string | null
   audio: AudioExtras
   beatCut: BeatCutExtras
-  /** 'fullSpan': hookText is burned in as ONE continuous overlay covering the whole output instead of just the hook segment, and visualCta is ignored entirely. */
+  /** 'fullSpan': hookTextImagePath is burned in as ONE continuous overlay covering the whole output instead of just the hook segment, and visualCtaImagePath is ignored entirely. */
   textMode: TextMode
 }
 
@@ -92,9 +79,8 @@ export interface FilterGraphResult {
 const FALLBACK_DURATION_SECONDS = 3
 const NO_EXTRAS: RenderExtras = {
   variation: NEUTRAL_VARIATION_PARAMETERS,
-  hookText: null,
-  visualCta: null,
-  fontFilePath: '',
+  hookTextImagePath: null,
+  visualCtaImagePath: null,
   frameOverlayPath: null,
   audio: {
     muteHook: false,
@@ -176,53 +162,6 @@ function buildColorStage(variation: VariationParameters): string[] {
 }
 
 /**
- * Emits one drawtext filter per line instead of a single multi-line one.
- * Two reasons:
- *  1. ffmpeg's drawtext left-aligns every line to the same x when given
- *     multi-line text (text_w reflects only the widest line), so a shorter
- *     line does NOT get individually centered under a longer one — it
- *     looks visibly off-center. Per-line filters each read their own
- *     line's real `text_w` from ffmpeg, giving pixel-accurate centering.
- *  2. It lets `y` be computed as an explicit center-anchored number (see
- *     below) instead of relying on multi-line `text_h`, which keeps this
- *     in lockstep with the Preview overlay editor's own CSS centering
- *     (translate(-50%,-50%) — xNormalized/yNormalized is the BLOCK
- *     CENTER, not its top-left corner).
- */
-function buildDrawTextStage(
-  overlay: ResolvedTextOverlay,
-  fontFilePath: string,
-  targetHeight: number,
-  enableExpr: string | null
-): string {
-  const fontSize = Math.max(12, Math.round(targetHeight * 0.09 * overlay.fontSizeRatio * overlay.overlay.scale))
-  const borderWidth = Math.max(2, Math.round(fontSize * 0.08))
-  const fontfile = escapeFfmpegFilterPath(fontFilePath)
-  const lineHeight = fontSize * LINE_HEIGHT_MULTIPLIER
-  const totalBlockHeight = lineHeight * overlay.lines.length
-  const topY = overlay.overlay.yNormalized * targetHeight - totalBlockHeight / 2 + (lineHeight - fontSize) / 2
-
-  return overlay.lines
-    .map((_line, i) => {
-      const textfile = escapeFfmpegFilterPath(overlay.lineTextFilePaths[i])
-      const y = Math.round(topY + i * lineHeight)
-      const parts = [
-        `drawtext=fontfile=${fontfile}`,
-        `textfile=${textfile}`,
-        `fontsize=${fontSize}`,
-        'fontcolor=white',
-        'bordercolor=black',
-        `borderw=${borderWidth}`,
-        `x=(W*${overlay.overlay.xNormalized})-(text_w/2)`,
-        `y=${y}`
-      ]
-      if (enableExpr) parts.push(`enable='${enableExpr}'`)
-      return parts.join(':')
-    })
-    .join(',')
-}
-
-/**
  * Builds the full filter_complex graph that normalizes the 3 segments
  * (hook, body, cta) to a shared resolution/format and joins them using the
  * requested transition. Always emits a stereo AAC-ready audio stream, even
@@ -272,14 +211,9 @@ export function buildFilterGraph(
     const isHookSegment = i === 0
     const isCtaSegment = i === 2
     const fullSpanText = extras.textMode === 'fullSpan'
-    const textOverlay = !fullSpanText && isHookSegment ? extras.hookText : !fullSpanText && isCtaSegment ? extras.visualCta : null
+    const textImagePath = !fullSpanText && isHookSegment ? extras.hookTextImagePath : !fullSpanText && isCtaSegment ? extras.visualCtaImagePath : null
 
     const segmentDuration = segmentDurations[i]
-
-    if (textOverlay) {
-      const enableExpr = isHookSegment ? buildHookTextTimingExpr(segmentDuration) : null
-      postStages.push(buildDrawTextStage(textOverlay, extras.fontFilePath, height, enableExpr))
-    }
 
     // Beat Cut plan for this segment (null = feature off, or fewer than 2
     // chunks resolved — either way, nothing to shuffle, fall through to the
@@ -296,23 +230,50 @@ export function buildFilterGraph(
       plan = buildChunkPlan(boundaries, extras.beatCut.seed + i * 13, extras.beatCut.allowedTransitionStyles)
     }
 
-    let finalVideoLabel: string
-    if (plan) {
-      let videoPreLabel = `${i}:v`
+    if (!plan && !textImagePath) {
+      // Exact original single-chain path — byte-for-byte identical output
+      // when neither feature touches this segment.
+      const chain = [...preStages, scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages].join(',')
+      filterLines.push(`[${i}:v]${chain}${fpsFilter}[${vLabel}]`)
+    } else {
+      let curLabel = `${i}:v`
       if (preStages.length > 0) {
         const preLabel = `pre${i}`
         filterLines.push(`[${i}:v]${preStages.join(',')}[${preLabel}]`)
-        videoPreLabel = preLabel
+        curLabel = preLabel
       }
-      const remix = applyBeatCutVideoRemix(videoPreLabel, plan, i)
-      filterLines.push(...remix.filterLines)
-      finalVideoLabel = remix.videoLabel
-    } else {
-      finalVideoLabel = `${i}:v`
-    }
+      if (plan) {
+        const remix = applyBeatCutVideoRemix(curLabel, plan, i)
+        filterLines.push(...remix.filterLines)
+        curLabel = remix.videoLabel
+      }
+      if (textImagePath) {
+        // Text overlay is applied AFTER scale/rotate/zoom/color (same spot
+        // drawtext used to run in postStages) so it stays crisp and
+        // unaffected by those effects, then a final fps stage closes the
+        // chain — mirroring the single-line path's [...,fps] ordering.
+        const scaledLabel = `scaled${i}`
+        const chain = [scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages].join(',')
+        filterLines.push(`[${curLabel}]${chain}[${scaledLabel}]`)
 
-    const chainParts = plan ? [scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages] : [...preStages, scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages]
-    filterLines.push(`[${finalVideoLabel}]${chainParts.join(',')}${fpsFilter}[${vLabel}]`)
+        const imgInputIndex = nextInputIndex
+        nextInputIndex++
+        extraInputArgs.push('-loop', '1', '-t', segmentDuration.toFixed(3), '-i', textImagePath)
+        const imgLabel = `textimg${i}`
+        filterLines.push(`[${imgInputIndex}:v]format=rgba[${imgLabel}]`)
+        const overlaidLabel = `textOverlaid${i}`
+        filterLines.push(`[${scaledLabel}][${imgLabel}]overlay=0:0[${overlaidLabel}]`)
+
+        if (fpsFilter) {
+          filterLines.push(`[${overlaidLabel}]fps=${settings.fps}[${vLabel}]`)
+        } else {
+          filterLines.push(`[${overlaidLabel}]null[${vLabel}]`)
+        }
+      } else {
+        const chain = [scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages].join(',')
+        filterLines.push(`[${curLabel}]${chain}${fpsFilter}[${vLabel}]`)
+      }
+    }
     videoLabels.push(vLabel)
 
     // Which per-category mute flag / attached track applies to this segment
@@ -407,8 +368,12 @@ export function buildFilterGraph(
     nextInputIndex++
   }
 
-  if (extras.textMode === 'fullSpan' && extras.hookText) {
-    result = applyFullTextOverlay(result, extras.hookText, extras.fontFilePath, height)
+  if (extras.textMode === 'fullSpan' && extras.hookTextImagePath) {
+    // Full-span text is just another full-frame transparent PNG overlaid for
+    // the whole output — the exact same mechanism as the moldura frame
+    // overlay above, just a different image.
+    result = applyFrameOverlay(result, extras.hookTextImagePath, width, height, nextInputIndex, maxDuration)
+    nextInputIndex++
   }
 
   return result
@@ -564,44 +529,6 @@ function applyFullAudioOverlay(
     videoOutputLabel: result.videoOutputLabel,
     audioOutputLabel: outLabel
   }
-}
-
-/**
- * Burns `overlay` in as ONE continuous drawtext over the fully concatenated
- * video — used instead of (never together with) the per-segment hook/CTA
- * text when `textMode === 'fullSpan'`. No `enable=` expression: unlike the
- * per-segment hook text, this is meant to stay visible the entire time.
- */
-function applyFullTextOverlay(
-  result: FilterGraphResult,
-  overlay: ResolvedTextOverlay,
-  fontFilePath: string,
-  targetHeight: number
-): FilterGraphResult {
-  const outLabel = 'outv_fulltext'
-  const drawTextChain = buildDrawTextStage(overlay, fontFilePath, targetHeight, null)
-  const line = `[${result.videoOutputLabel}]${drawTextChain}[${outLabel}]`
-
-  return {
-    extraInputArgs: result.extraInputArgs,
-    filterComplex: `${result.filterComplex};${line}`,
-    videoOutputLabel: outLabel,
-    audioOutputLabel: result.audioOutputLabel
-  }
-}
-
-/** Hook text becomes visible ~0.10-0.15s after start and hides ~0.15-0.20s before the segment ends. */
-function buildHookTextTimingExpr(effectiveDuration: number): string {
-  const inTime = Math.min(0.12, effectiveDuration * 0.15)
-  const outTime = Math.max(inTime + 0.05, effectiveDuration - Math.min(0.18, effectiveDuration * 0.15))
-  return `between(t,${inTime.toFixed(3)},${outTime.toFixed(3)})`
-}
-
-/** Pre-computes the wrapped lines + font ratio for a text overlay given the current target resolution. */
-export function resolveTextFit(content: string, overlay: OverlayTransform, targetWidth: number, targetHeight: number) {
-  const baseFontSizePx = targetHeight * 0.09 * overlay.scale
-  const maxWidthPx = targetWidth * overlay.maxWidthNormalized
-  return fitTextToWidth(content, baseFontSizePx, maxWidthPx)
 }
 
 function buildFadeGraph(

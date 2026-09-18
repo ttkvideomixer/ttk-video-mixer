@@ -20,7 +20,7 @@ const MAX_MAX_WIDTH = 1
 const MIN_SCALE = 0.15
 const MAX_SCALE = 2.5
 
-/** Mirrors exactly what the ffmpeg pipeline does (see filterGraph.ts resolveTextFit / buildDrawTextStage). */
+/** Mirrors exactly what the final render does (see renderer/utils/renderTextOverlay.ts) — same wrap/size math, same canvas-based text drawing, so what's shown here is what ends up burned into the video. */
 function computeRenderedText(content: string, overlay: OverlayTransform, containerWidth: number, containerHeight: number) {
   const baseFontSizePx = containerHeight * FONT_SIZE_RATIO_OF_HEIGHT * overlay.scale
   const maxWidthPx = containerWidth * overlay.maxWidthNormalized
