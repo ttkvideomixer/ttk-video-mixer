@@ -118,6 +118,18 @@ export function processJob(input: ProcessJobInput, onProgress?: (ratio: number) 
         ctaBeatGrid: input.ctaBeatGrid,
         fullBeatGrid: input.fullBeatGrid
       },
+      beatFx: {
+        hookEnabled: input.beatFxHook,
+        bodyEnabled: input.beatFxBody,
+        ctaEnabled: input.beatFxCta,
+        fallbackChunkCount: input.beatFxFallbackChunkCount,
+        allowedStyles: input.beatFxAllowedStyles,
+        seed: input.beatFxSeed,
+        hookBeatGrid: input.hookBeatGrid,
+        bodyBeatGrid: input.bodyBeatGrid,
+        ctaBeatGrid: input.ctaBeatGrid,
+        fullBeatGrid: input.fullBeatGrid
+      },
       textMode: input.textMode
     }
 

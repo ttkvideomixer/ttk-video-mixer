@@ -131,6 +131,27 @@ export interface BeatCutSettings {
   allowedTransitionStyles: BeatTransitionStyle[]
 }
 
+/**
+ * "Efeitos na Batida" (Beat FX) — punch-style visual effects (zoom hit,
+ * camera shake, flash, RGB glitch, color-invert blip, hue swing) that fire
+ * exactly at each beat instant, without touching footage order (unlike Beat
+ * Cut). Independent per category and independent of Beat Cut — either can
+ * be used alone or both together on the same category, since this only
+ * decorates each beat-aligned chunk in place before Beat Cut (if also
+ * enabled) reorders those same chunks.
+ */
+export type BeatFxStyle = 'zoomPunch' | 'shake' | 'flash' | 'rgbGlitch' | 'invertBlip' | 'hueSwing'
+
+export interface BeatFxSettings {
+  hookEnabled: boolean
+  bodyEnabled: boolean
+  ctaEnabled: boolean
+  /** Number of even beat-like pulses to use when the category has no attached track to derive a beat grid from. */
+  fallbackChunkCount: number
+  /** Styles eligible to be randomly picked for each beat hit. */
+  allowedStyles: BeatFxStyle[]
+}
+
 export type JobStatus = 'pending' | 'processing' | 'done' | 'error' | 'skipped' | 'canceled'
 
 export interface Combination {
@@ -259,7 +280,14 @@ export interface GenerationJob {
   beatCutSeed: number
   beatCutFallbackChunkCount: number
   beatCutAllowedTransitions: BeatTransitionStyle[]
-  /** Resolved from whichever track this job actually got assigned (hookAudioPath/etc) — null when that category has no track, or beat detection hasn't run for it. */
+  beatFxHook: boolean
+  beatFxBody: boolean
+  beatFxCta: boolean
+  /** Seeds this job's per-beat style picks — unique per job so every generated video gets a different mix of hits. */
+  beatFxSeed: number
+  beatFxFallbackChunkCount: number
+  beatFxAllowedStyles: BeatFxStyle[]
+  /** Resolved from whichever track this job actually got assigned (hookAudioPath/etc) — null when that category has no track, or beat detection hasn't run for it. Shared by Beat Cut and Beat FX — either enabling a category is enough to trigger detection. */
   hookBeatGrid: BeatGrid | null
   bodyBeatGrid: BeatGrid | null
   ctaBeatGrid: BeatGrid | null
@@ -302,6 +330,7 @@ export interface Project {
   frameSettings: FrameSettings
   audioSettings: AudioSettings
   beatCutSettings: BeatCutSettings
+  beatFxSettings: BeatFxSettings
   textMode: TextMode
   createdAt: number
   updatedAt: number
@@ -351,6 +380,12 @@ export interface RenderJobInput {
   beatCutSeed: number
   beatCutFallbackChunkCount: number
   beatCutAllowedTransitions: BeatTransitionStyle[]
+  beatFxHook: boolean
+  beatFxBody: boolean
+  beatFxCta: boolean
+  beatFxSeed: number
+  beatFxFallbackChunkCount: number
+  beatFxAllowedStyles: BeatFxStyle[]
   hookBeatGrid: BeatGrid | null
   bodyBeatGrid: BeatGrid | null
   ctaBeatGrid: BeatGrid | null

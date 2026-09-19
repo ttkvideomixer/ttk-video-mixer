@@ -2,6 +2,7 @@ import type { Project } from './types'
 import {
   DEFAULT_AUDIO_SETTINGS,
   DEFAULT_BEAT_CUT_SETTINGS,
+  DEFAULT_BEAT_FX_SETTINGS,
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
@@ -62,6 +63,11 @@ export function migrateProject(raw: Record<string, unknown>): Project {
       ...DEFAULT_BEAT_CUT_SETTINGS,
       ...p.beatCutSettings,
       allowedTransitionStyles: p.beatCutSettings?.allowedTransitionStyles ?? DEFAULT_BEAT_CUT_SETTINGS.allowedTransitionStyles
+    },
+    beatFxSettings: {
+      ...DEFAULT_BEAT_FX_SETTINGS,
+      ...p.beatFxSettings,
+      allowedStyles: p.beatFxSettings?.allowedStyles ?? DEFAULT_BEAT_FX_SETTINGS.allowedStyles
     },
     textMode: p.textMode ?? DEFAULT_TEXT_MODE,
     createdAt: p.createdAt ?? Date.now(),

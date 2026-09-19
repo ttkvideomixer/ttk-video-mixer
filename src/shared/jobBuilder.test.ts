@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildGenerationJobs, type BuildJobsParams } from './jobBuilder'
 import type { CreativeVariationSettings, VideoFile } from './types'
-import { DEFAULT_AUDIO_SETTINGS, DEFAULT_BEAT_CUT_SETTINGS, DEFAULT_CREATIVE_VARIATION_SETTINGS, DEFAULT_TEXT_MODE } from './defaults'
+import { DEFAULT_AUDIO_SETTINGS, DEFAULT_BEAT_CUT_SETTINGS, DEFAULT_BEAT_FX_SETTINGS, DEFAULT_CREATIVE_VARIATION_SETTINGS, DEFAULT_TEXT_MODE } from './defaults'
 
 function makeVideos(category: VideoFile['category'], count: number): VideoFile[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -35,6 +35,7 @@ function baseParams(): BuildJobsParams {
     frameFilePaths: [],
     audioSettings: DEFAULT_AUDIO_SETTINGS,
     beatCutSettings: DEFAULT_BEAT_CUT_SETTINGS,
+    beatFxSettings: DEFAULT_BEAT_FX_SETTINGS,
     textMode: DEFAULT_TEXT_MODE
   }
 }
@@ -168,6 +169,19 @@ describe('buildGenerationJobs', () => {
 
     const again = buildGenerationJobs(params)
     expect(again.map((j) => j.beatCutSeed)).toEqual(jobs.map((j) => j.beatCutSeed))
+  })
+
+  it('copies beatFxSettings flags onto every job and gives each job a unique, deterministic seed', () => {
+    const params = baseParams()
+    params.beatFxSettings = { ...DEFAULT_BEAT_FX_SETTINGS, bodyEnabled: true, fallbackChunkCount: 10 }
+    const jobs = buildGenerationJobs(params)
+
+    expect(jobs.every((j) => j.beatFxHook === false && j.beatFxBody === true && j.beatFxCta === false)).toBe(true)
+    expect(jobs.every((j) => j.beatFxFallbackChunkCount === 10)).toBe(true)
+    expect(new Set(jobs.map((j) => j.beatFxSeed)).size).toBe(jobs.length)
+
+    const again = buildGenerationJobs(params)
+    expect(again.map((j) => j.beatFxSeed)).toEqual(jobs.map((j) => j.beatFxSeed))
   })
 
   it('forces visualCtaPhrase to null in fullSpan text mode even when visualCtaEnabled is true', () => {

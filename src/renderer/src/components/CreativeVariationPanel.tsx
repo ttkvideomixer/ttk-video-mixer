@@ -1,7 +1,7 @@
 import { useAppStore, type AudioSlot } from '../state/useAppStore'
 import { countAvailableVariationSpace } from '@shared/variationParams'
-import { BEAT_TRANSITION_STYLES, FRAME_ELIGIBLE_RESOLUTION } from '@shared/defaults'
-import type { BeatTransitionStyle } from '@shared/types'
+import { BEAT_FX_STYLES, BEAT_TRANSITION_STYLES, FRAME_ELIGIBLE_RESOLUTION } from '@shared/defaults'
+import type { BeatFxStyle, BeatTransitionStyle } from '@shared/types'
 import { formatNumberPtBr } from '../utils/format'
 
 const BEAT_TRANSITION_LABELS: Record<BeatTransitionStyle, string> = {
@@ -16,6 +16,15 @@ const BEAT_TRANSITION_LABELS: Record<BeatTransitionStyle, string> = {
   zoomin: 'Zoom',
   dissolve: 'Dissolver',
   radial: 'Radial'
+}
+
+const BEAT_FX_LABELS: Record<BeatFxStyle, string> = {
+  zoomPunch: 'Zoom (impacto)',
+  shake: 'Tremida',
+  flash: 'Flash',
+  rgbGlitch: 'Glitch RGB',
+  invertBlip: 'Inversão rápida',
+  hueSwing: 'Giro de cor'
 }
 
 function CreativeVariationPanel(): JSX.Element {
@@ -44,6 +53,14 @@ function CreativeVariationPanel(): JSX.Element {
   const disableBeatCutAll = useAppStore((s) => s.disableBeatCutAll)
   const setBeatCutFallbackChunkCount = useAppStore((s) => s.setBeatCutFallbackChunkCount)
   const setBeatCutAllowedTransitions = useAppStore((s) => s.setBeatCutAllowedTransitions)
+  const beatFxSettings = useAppStore((s) => s.beatFxSettings)
+  const setBeatFxHook = useAppStore((s) => s.setBeatFxHook)
+  const setBeatFxBody = useAppStore((s) => s.setBeatFxBody)
+  const setBeatFxCta = useAppStore((s) => s.setBeatFxCta)
+  const enableBeatFxAll = useAppStore((s) => s.enableBeatFxAll)
+  const disableBeatFxAll = useAppStore((s) => s.disableBeatFxAll)
+  const setBeatFxFallbackChunkCount = useAppStore((s) => s.setBeatFxFallbackChunkCount)
+  const setBeatFxAllowedStyles = useAppStore((s) => s.setBeatFxAllowedStyles)
 
   const availableSpace = countAvailableVariationSpace(creativeVariation)
   const frameResolutionMismatch = frameSettings.enabled && resolution !== FRAME_ELIGIBLE_RESOLUTION
@@ -286,6 +303,77 @@ function CreativeVariationPanel(): JSX.Element {
                       className="h-3.5 w-3.5 accent-brand"
                     />
                     {BEAT_TRANSITION_LABELS[style]}
+                  </label>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="border-t border-bg-border pt-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold uppercase tracking-wide text-gray-300">Efeitos na Batida</h4>
+          <div className="flex gap-2">
+            <button
+              onClick={disableBeatFxAll}
+              className="rounded-lg border border-bg-border px-2 py-1 text-[11px] text-gray-300 hover:bg-bg-soft"
+            >
+              Desativar tudo
+            </button>
+            <button
+              onClick={enableBeatFxAll}
+              className="rounded-lg border border-bg-border px-2 py-1 text-[11px] text-gray-300 hover:bg-bg-soft"
+            >
+              Ativar tudo
+            </button>
+          </div>
+        </div>
+
+        <p className="mt-1.5 text-[11px] text-gray-600">
+          Efeitos de impacto (zoom, tremida, flash, glitch...) disparados exatamente no instante da batida — sem
+          reordenar o vídeo, ao contrário do Corte na Batida. Pode usar junto ou separado dele. Usa a mesma trilha
+          (da categoria ou &ldquo;Vídeo completo&rdquo;) para achar a batida, ou pedaços parecidos sem música.
+        </p>
+
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <VariationCheckbox label="Gancho" checked={beatFxSettings.hookEnabled} onChange={setBeatFxHook} />
+          <VariationCheckbox label="Corpo" checked={beatFxSettings.bodyEnabled} onChange={setBeatFxBody} />
+          <VariationCheckbox label="CTA" checked={beatFxSettings.ctaEnabled} onChange={setBeatFxCta} />
+        </div>
+
+        {(beatFxSettings.hookEnabled || beatFxSettings.bodyEnabled || beatFxSettings.ctaEnabled) && (
+          <>
+            <label className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+              Batidas sem música (por trecho)
+              <input
+                type="number"
+                min={2}
+                max={32}
+                value={beatFxSettings.fallbackChunkCount}
+                onChange={(e) => setBeatFxFallbackChunkCount(Math.max(2, Math.min(32, Number(e.target.value) || 2)))}
+                className="w-16 rounded-lg border border-bg-border bg-bg-soft px-2 py-1 text-sm text-white outline-none focus:border-brand"
+              />
+            </label>
+
+            <p className="mt-3 text-[11px] text-gray-500">Efeitos sorteados a cada batida:</p>
+            <div className="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {BEAT_FX_STYLES.map((style) => {
+                const checked = beatFxSettings.allowedStyles.includes(style)
+                return (
+                  <label key={style} className="flex items-center gap-1.5 rounded-lg bg-bg-soft px-2 py-1.5 text-[11px] text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...beatFxSettings.allowedStyles, style]
+                          : beatFxSettings.allowedStyles.filter((s) => s !== style)
+                        setBeatFxAllowedStyles(next)
+                      }}
+                      className="h-3.5 w-3.5 accent-brand"
+                    />
+                    {BEAT_FX_LABELS[style]}
                   </label>
                 )
               })}

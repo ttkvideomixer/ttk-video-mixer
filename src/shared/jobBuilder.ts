@@ -1,6 +1,7 @@
 import type {
   AudioSettings,
   BeatCutSettings,
+  BeatFxSettings,
   CombinationSelectionSettings,
   CreativeVariationSettings,
   GenerationJob,
@@ -31,6 +32,7 @@ export interface BuildJobsParams {
   frameFilePaths: string[]
   audioSettings: AudioSettings
   beatCutSettings: BeatCutSettings
+  beatFxSettings: BeatFxSettings
   textMode: TextMode
 }
 
@@ -64,6 +66,7 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
     frameFilePaths,
     audioSettings,
     beatCutSettings,
+    beatFxSettings,
     textMode
   } = params
 
@@ -223,6 +226,12 @@ export function buildGenerationJobs(params: BuildJobsParams): GenerationJob[] {
       beatCutSeed: projectSeed + 9013 + i,
       beatCutFallbackChunkCount: beatCutSettings.fallbackChunkCount,
       beatCutAllowedTransitions: beatCutSettings.allowedTransitionStyles,
+      beatFxHook: beatFxSettings.hookEnabled,
+      beatFxBody: beatFxSettings.bodyEnabled,
+      beatFxCta: beatFxSettings.ctaEnabled,
+      beatFxSeed: projectSeed + 15013 + i,
+      beatFxFallbackChunkCount: beatFxSettings.fallbackChunkCount,
+      beatFxAllowedStyles: beatFxSettings.allowedStyles,
       hookBeatGrid: null,
       bodyBeatGrid: null,
       ctaBeatGrid: null,

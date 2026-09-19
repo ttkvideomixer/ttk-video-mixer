@@ -1,7 +1,8 @@
-import type { BeatGrid, BeatTransitionStyle, ExportSettings, TextMode, VariationParameters } from '@shared/types'
+import type { BeatFxStyle, BeatGrid, BeatTransitionStyle, ExportSettings, TextMode, VariationParameters } from '@shared/types'
 import { RESOLUTION_MAP } from '@shared/resolutions'
 import { NEUTRAL_VARIATION_PARAMETERS } from '@shared/defaults'
 import { buildChunkPlan, prefixSums, resolveBeatBoundaries, type ChunkPlan } from '@shared/beatCut'
+import { mulberry32 } from '@shared/rng'
 
 export interface SegmentInfo {
   path: string
@@ -56,6 +57,27 @@ export interface BeatCutExtras {
   fullBeatGrid: BeatGrid | null
 }
 
+/**
+ * "Efeitos na Batida" (Beat FX) — punch-style visual hits (zoom, shake,
+ * flash, RGB glitch, invert blip, hue swing) applied exactly at each beat
+ * instant, WITHOUT reordering footage (unlike Beat Cut). Independent per
+ * category; composes with Beat Cut on the same category by running first —
+ * Beat Cut's split/reorder/xfade then operates on the already-punched
+ * pixels, which is safe because Beat FX never changes any chunk's duration.
+ */
+export interface BeatFxExtras {
+  hookEnabled: boolean
+  bodyEnabled: boolean
+  ctaEnabled: boolean
+  fallbackChunkCount: number
+  allowedStyles: BeatFxStyle[]
+  seed: number
+  hookBeatGrid: BeatGrid | null
+  bodyBeatGrid: BeatGrid | null
+  ctaBeatGrid: BeatGrid | null
+  fullBeatGrid: BeatGrid | null
+}
+
 export interface RenderExtras {
   variation: VariationParameters
   /** Pre-rendered (Chromium canvas, not ffmpeg drawtext — see renderer/utils/renderTextOverlay.ts) transparent PNG at the target resolution, already positioned. Null when there's no text for this job/segment. */
@@ -65,6 +87,7 @@ export interface RenderExtras {
   frameOverlayPath: string | null
   audio: AudioExtras
   beatCut: BeatCutExtras
+  beatFx: BeatFxExtras
   /** 'fullSpan': hookTextImagePath is burned in as ONE continuous overlay covering the whole output instead of just the hook segment, and visualCtaImagePath is ignored entirely. */
   textMode: TextMode
 }
@@ -97,6 +120,18 @@ const NO_EXTRAS: RenderExtras = {
     ctaEnabled: false,
     fallbackChunkCount: 4,
     allowedTransitionStyles: [],
+    seed: 0,
+    hookBeatGrid: null,
+    bodyBeatGrid: null,
+    ctaBeatGrid: null,
+    fullBeatGrid: null
+  },
+  beatFx: {
+    hookEnabled: false,
+    bodyEnabled: false,
+    ctaEnabled: false,
+    fallbackChunkCount: 8,
+    allowedStyles: [],
     seed: 0,
     hookBeatGrid: null,
     bodyBeatGrid: null,
@@ -236,7 +271,23 @@ export function buildFilterGraph(
       plan = buildChunkPlan(boundaries, extras.beatCut.seed + i * 13, extras.beatCut.allowedTransitionStyles)
     }
 
-    if (!plan && !textImagePath) {
+    // Beat FX plan — independent of Beat Cut, its own chunk density/grid.
+    // Resolved as a boundary list only (no shuffle): it decorates each chunk
+    // with a punch effect in place, so it composes safely with Beat Cut by
+    // running first — Beat Cut's split/reorder/xfade then works on the
+    // already-punched pixels without caring that they were touched.
+    const fxCategoryEnabled = i === 0 ? extras.beatFx.hookEnabled : i === 1 ? extras.beatFx.bodyEnabled : extras.beatFx.ctaEnabled
+    let fxBoundaries: number[] | null = null
+    if (fxCategoryEnabled && extras.beatFx.allowedStyles.length > 0) {
+      const fxCategoryGrid = i === 0 ? extras.beatFx.hookBeatGrid : i === 1 ? extras.beatFx.bodyBeatGrid : extras.beatFx.ctaBeatGrid
+      const fxUsingFullGrid = !fxCategoryGrid && !!extras.beatFx.fullBeatGrid
+      const fxGrid = fxCategoryGrid ?? extras.beatFx.fullBeatGrid
+      const fxCumulativeOffset = fxUsingFullGrid ? offsetsBeforeSegment[i] : 0
+      const resolved = resolveBeatBoundaries(fxGrid, extras.beatFx.fallbackChunkCount, segmentDuration, fxCumulativeOffset)
+      fxBoundaries = resolved.length > 2 ? resolved : null
+    }
+
+    if (!plan && !fxBoundaries && !textImagePath) {
       // Exact original single-chain path — byte-for-byte identical output
       // when neither feature touches this segment.
       const chain = [...preStages, scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages].join(',')
@@ -247,6 +298,13 @@ export function buildFilterGraph(
         const preLabel = `pre${i}`
         filterLines.push(`[${i}:v]${preStages.join(',')}[${preLabel}]`)
         curLabel = preLabel
+      }
+      if (fxBoundaries) {
+        const nativeWidth = segment.width && segment.width % 2 === 0 ? segment.width : segment.width ? segment.width + 1 : width
+        const nativeHeight = segment.height && segment.height % 2 === 0 ? segment.height : segment.height ? segment.height + 1 : height
+        const fx = applyBeatFx(curLabel, fxBoundaries, extras.beatFx.allowedStyles, extras.beatFx.seed + i * 17, i, nativeWidth, nativeHeight)
+        filterLines.push(...fx.filterLines)
+        curLabel = fx.videoLabel
       }
       if (plan) {
         const remix = applyBeatCutVideoRemix(curLabel, plan, i)
@@ -492,6 +550,93 @@ function applyBeatCutAudioRemix(inLabel: string, plan: ChunkPlan, segmentIndex: 
   filterLines.push(`[${concatLabel}]atrim=0:${finalDuration.toFixed(3)},asetpts=PTS-STARTPTS[${outLabel}]`)
 
   return { audioLabel: outLabel, filterLines }
+}
+
+/**
+ * One punch-effect filter chain per Beat FX style. `t` is LOCAL to whatever
+ * chunk this runs on (reset to 0 by the `setpts=PTS-STARTPTS` that always
+ * precedes it in {@link applyBeatFx}) — so every style peaks exactly at the
+ * chunk's first frame (the beat instant) and decays over a short window,
+ * confirmed with real renders (a measurable test pattern for zoomPunch/
+ * shake; visual/exit-code checks for the rest) before shipping:
+ * - zoomPunch/shake use `scale` (which supports a `t`-driven `eval=frame`
+ *   expression) to animate size, then a FIXED-size `crop` to frame it back
+ *   down — `crop`'s own w/h expressions are evaluated once at init, before
+ *   `t` exists, so they can never be the animated part; only `crop`'s x/y
+ *   support `t` per frame, which is what shake actually leans on.
+ * - flash/hueSwing use native per-frame `t` expressions directly.
+ * - rgbGlitch/invertBlip use fixed (non-expression) filter params gated by
+ *   `enable=` timeline editing — a hard on/off blip, not a smooth decay,
+ *   which reads as more of a deliberate "glitch" than an eased effect.
+ */
+function beatFxStyleChain(style: BeatFxStyle, nativeWidth: number, nativeHeight: number): string {
+  switch (style) {
+    case 'zoomPunch':
+      return (
+        `scale=w='trunc(iw*(1+0.28*max(0,1-t/0.16))/2)*2':h='trunc(ih*(1+0.28*max(0,1-t/0.16))/2)*2':eval=frame,` +
+        `crop=${nativeWidth}:${nativeHeight}:(in_w-out_w)/2:(in_h-out_h)/2`
+      )
+    case 'shake':
+      return (
+        `scale=w='trunc(iw*1.1/2)*2':h='trunc(ih*1.1/2)*2',` +
+        `crop=${nativeWidth}:${nativeHeight}:x='(in_w-out_w)/2+in_w*0.035*sin(t*100)*max(0,1-t/0.18)':y='(in_h-out_h)/2+in_h*0.035*cos(t*85)*max(0,1-t/0.18)'`
+      )
+    case 'flash':
+      return `eq=brightness='0.65*max(0,1-t/0.12)':eval=frame`
+    case 'rgbGlitch':
+      return `rgbashift=rh=16:bh=-16:edge=smear:enable='lt(t,0.14)'`
+    case 'invertBlip':
+      return `negate=enable='lt(t,0.07)'`
+    case 'hueSwing':
+      return `hue=h='65*max(0,1-t/0.15)':s='1+0.35*max(0,1-t/0.15)'`
+  }
+}
+
+/**
+ * Splits `inLabel` into `boundaries`-defined chunks, IN THEIR ORIGINAL
+ * ORDER (no shuffle — that's Beat Cut's job), and burns a randomly-picked
+ * punch style into the start of each one before hard-concatenating them
+ * back together. Total duration is exactly preserved (no xfade, no
+ * overlap), which is what makes it safe to run before Beat Cut: Beat Cut's
+ * own boundaries (computed independently) stay valid on this output.
+ */
+function applyBeatFx(
+  inLabel: string,
+  boundaries: number[],
+  styles: BeatFxStyle[],
+  seed: number,
+  segmentIndex: number,
+  nativeWidth: number,
+  nativeHeight: number
+): { videoLabel: string; filterLines: string[] } {
+  const chunkCount = boundaries.length - 1
+  const filterLines: string[] = []
+
+  const splitLabels = Array.from({ length: chunkCount }, (_, k) => `bfxSrc${segmentIndex}_${k}`)
+  filterLines.push(`[${inLabel}]split=${chunkCount}${splitLabels.map((l) => `[${l}]`).join('')}`)
+
+  const pickStyle = mulberry32(seed)
+  const outLabels: string[] = []
+  for (let k = 0; k < chunkCount; k++) {
+    const style = styles[Math.floor(pickStyle() * styles.length)]
+    const outLabel = `bfx${segmentIndex}_${k}`
+    // setsar=1 matters here: zoomPunch/shake's `scale` expressions round
+    // width/height to the nearest even number independently, which at some
+    // values of `t` doesn't preserve the exact input aspect ratio — ffmpeg
+    // compensates by nudging SAR instead of distorting the image, and that
+    // nudge varies frame to frame. Left alone, the `concat` below (which
+    // needs every input to report the SAME SAR) fails outright — confirmed
+    // with a real render ("Input link parameters... do not match").
+    filterLines.push(
+      `[${splitLabels[k]}]trim=start=${boundaries[k].toFixed(3)}:end=${boundaries[k + 1].toFixed(3)},setpts=PTS-STARTPTS,${beatFxStyleChain(style, nativeWidth, nativeHeight)},setsar=1[${outLabel}]`
+    )
+    outLabels.push(outLabel)
+  }
+
+  const concatLabel = `bfxOut${segmentIndex}`
+  filterLines.push(`${outLabels.map((l) => `[${l}]`).join('')}concat=n=${chunkCount}:v=1:a=0[${concatLabel}]`)
+
+  return { videoLabel: concatLabel, filterLines }
 }
 
 /**

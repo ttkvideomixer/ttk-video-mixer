@@ -4,6 +4,8 @@ import type {
   AudioFile,
   AudioSettings,
   BeatCutSettings,
+  BeatFxSettings,
+  BeatFxStyle,
   BeatGrid,
   BeatTransitionStyle,
   CombinationSelectionSettings,
@@ -30,6 +32,7 @@ import type {
 import {
   DEFAULT_AUDIO_SETTINGS,
   DEFAULT_BEAT_CUT_SETTINGS,
+  DEFAULT_BEAT_FX_SETTINGS,
   DEFAULT_COMBINATION_SETTINGS,
   DEFAULT_CREATIVE_VARIATION_SETTINGS,
   DEFAULT_EXPORT_SETTINGS,
@@ -185,6 +188,7 @@ interface AppState {
   /** Which slot the Áudio modal should show when opened — set by openAudioFilesModal. */
   audioModalSlot: AudioSlot
   beatCutSettings: BeatCutSettings
+  beatFxSettings: BeatFxSettings
   textMode: TextMode
   createSubfolderPerProject: boolean
   prefix: string
@@ -249,6 +253,13 @@ interface AppState {
   disableBeatCutAll: () => void
   setBeatCutFallbackChunkCount: (count: number) => void
   setBeatCutAllowedTransitions: (styles: BeatTransitionStyle[]) => void
+  setBeatFxHook: (enabled: boolean) => void
+  setBeatFxBody: (enabled: boolean) => void
+  setBeatFxCta: (enabled: boolean) => void
+  enableBeatFxAll: () => void
+  disableBeatFxAll: () => void
+  setBeatFxFallbackChunkCount: (count: number) => void
+  setBeatFxAllowedStyles: (styles: BeatFxStyle[]) => void
   setTextMode: (mode: TextMode) => void
   setCreateSubfolderPerProject: (value: boolean) => void
   setPrefix: (value: string) => void
@@ -329,6 +340,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   audioSettings: DEFAULT_AUDIO_SETTINGS,
   audioModalSlot: 'hook',
   beatCutSettings: DEFAULT_BEAT_CUT_SETTINGS,
+  beatFxSettings: DEFAULT_BEAT_FX_SETTINGS,
   textMode: DEFAULT_TEXT_MODE,
   createSubfolderPerProject: true,
   prefix: DEFAULT_PREFIX,
@@ -550,6 +562,33 @@ export const useAppStore = create<AppState>((set, get) => ({
   setBeatCutAllowedTransitions: (styles) => {
     set((state) => ({ beatCutSettings: { ...state.beatCutSettings, allowedTransitionStyles: styles }, previewApproved: false }))
   },
+  setBeatFxHook: (enabled) => {
+    set((state) => ({ beatFxSettings: { ...state.beatFxSettings, hookEnabled: enabled }, previewApproved: false }))
+  },
+  setBeatFxBody: (enabled) => {
+    set((state) => ({ beatFxSettings: { ...state.beatFxSettings, bodyEnabled: enabled }, previewApproved: false }))
+  },
+  setBeatFxCta: (enabled) => {
+    set((state) => ({ beatFxSettings: { ...state.beatFxSettings, ctaEnabled: enabled }, previewApproved: false }))
+  },
+  enableBeatFxAll: () => {
+    set((state) => ({
+      beatFxSettings: { ...state.beatFxSettings, hookEnabled: true, bodyEnabled: true, ctaEnabled: true },
+      previewApproved: false
+    }))
+  },
+  disableBeatFxAll: () => {
+    set((state) => ({
+      beatFxSettings: { ...state.beatFxSettings, hookEnabled: false, bodyEnabled: false, ctaEnabled: false },
+      previewApproved: false
+    }))
+  },
+  setBeatFxFallbackChunkCount: (count) => {
+    set((state) => ({ beatFxSettings: { ...state.beatFxSettings, fallbackChunkCount: count }, previewApproved: false }))
+  },
+  setBeatFxAllowedStyles: (styles) => {
+    set((state) => ({ beatFxSettings: { ...state.beatFxSettings, allowedStyles: styles }, previewApproved: false }))
+  },
   setTextMode: (mode) => {
     set({ textMode: mode, previewApproved: false })
   },
@@ -688,6 +727,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       frameFilePaths,
       audioSettings,
       beatCutSettings,
+      beatFxSettings,
       textMode
     } = get()
     const hook = hooks.find((h) => h.id === testSelection.hookId) ?? hooks[0]
@@ -721,9 +761,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       const ctaAudioPath = pickRandomTrack(audioSettings.ctaTracks)
       const fullAudioPath = pickRandomTrack(audioSettings.fullTracks)
       const grids = await resolveBeatGrids([
-        beatCutSettings.hookEnabled ? hookAudioPath : null,
-        beatCutSettings.bodyEnabled ? bodyAudioPath : null,
-        beatCutSettings.ctaEnabled ? ctaAudioPath : null,
+        beatCutSettings.hookEnabled || beatFxSettings.hookEnabled ? hookAudioPath : null,
+        beatCutSettings.bodyEnabled || beatFxSettings.bodyEnabled ? bodyAudioPath : null,
+        beatCutSettings.ctaEnabled || beatFxSettings.ctaEnabled ? ctaAudioPath : null,
         fullAudioPath
       ])
       // The underlying clip is rendered WITHOUT burning the text in: the
@@ -757,6 +797,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         beatCutSeed: Date.now(),
         beatCutFallbackChunkCount: beatCutSettings.fallbackChunkCount,
         beatCutAllowedTransitions: beatCutSettings.allowedTransitionStyles,
+        beatFxHook: beatFxSettings.hookEnabled,
+        beatFxBody: beatFxSettings.bodyEnabled,
+        beatFxCta: beatFxSettings.ctaEnabled,
+        beatFxSeed: Date.now() + 1,
+        beatFxFallbackChunkCount: beatFxSettings.fallbackChunkCount,
+        beatFxAllowedStyles: beatFxSettings.allowedStyles,
         hookBeatGrid: hookAudioPath ? (grids.get(hookAudioPath) ?? null) : null,
         bodyBeatGrid: bodyAudioPath ? (grids.get(bodyAudioPath) ?? null) : null,
         ctaBeatGrid: ctaAudioPath ? (grids.get(ctaAudioPath) ?? null) : null,
@@ -821,6 +867,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       frameSettings,
       audioSettings,
       beatCutSettings,
+      beatFxSettings,
       textMode
     } = state
     const outputFolder = get().computeOutputFolderPath()
@@ -849,22 +896,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       frameFilePaths,
       audioSettings,
       beatCutSettings,
+      beatFxSettings,
       textMode
     })
 
-    if (beatCutSettings.hookEnabled || beatCutSettings.bodyEnabled || beatCutSettings.ctaEnabled) {
+    const hookGridNeeded = beatCutSettings.hookEnabled || beatFxSettings.hookEnabled
+    const bodyGridNeeded = beatCutSettings.bodyEnabled || beatFxSettings.bodyEnabled
+    const ctaGridNeeded = beatCutSettings.ctaEnabled || beatFxSettings.ctaEnabled
+    if (hookGridNeeded || bodyGridNeeded || ctaGridNeeded) {
       const grids = await resolveBeatGrids(
         jobs.flatMap((j) => [
-          beatCutSettings.hookEnabled ? j.hookAudioPath : null,
-          beatCutSettings.bodyEnabled ? j.bodyAudioPath : null,
-          beatCutSettings.ctaEnabled ? j.ctaAudioPath : null,
+          hookGridNeeded ? j.hookAudioPath : null,
+          bodyGridNeeded ? j.bodyAudioPath : null,
+          ctaGridNeeded ? j.ctaAudioPath : null,
           j.fullAudioPath
         ])
       )
       for (const job of jobs) {
-        job.hookBeatGrid = beatCutSettings.hookEnabled && job.hookAudioPath ? (grids.get(job.hookAudioPath) ?? null) : null
-        job.bodyBeatGrid = beatCutSettings.bodyEnabled && job.bodyAudioPath ? (grids.get(job.bodyAudioPath) ?? null) : null
-        job.ctaBeatGrid = beatCutSettings.ctaEnabled && job.ctaAudioPath ? (grids.get(job.ctaAudioPath) ?? null) : null
+        job.hookBeatGrid = hookGridNeeded && job.hookAudioPath ? (grids.get(job.hookAudioPath) ?? null) : null
+        job.bodyBeatGrid = bodyGridNeeded && job.bodyAudioPath ? (grids.get(job.bodyAudioPath) ?? null) : null
+        job.ctaBeatGrid = ctaGridNeeded && job.ctaAudioPath ? (grids.get(job.ctaAudioPath) ?? null) : null
         job.fullBeatGrid = job.fullAudioPath ? (grids.get(job.fullAudioPath) ?? null) : null
       }
     }
@@ -980,6 +1031,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       silenceTrim: DEFAULT_SILENCE_TRIM_SETTINGS,
       audioSettings: DEFAULT_AUDIO_SETTINGS,
       beatCutSettings: DEFAULT_BEAT_CUT_SETTINGS,
+      beatFxSettings: DEFAULT_BEAT_FX_SETTINGS,
       textMode: DEFAULT_TEXT_MODE,
       overlays: DEFAULT_OVERLAYS_STATE,
       projectSeed: makeProjectSeed(),
@@ -1015,6 +1067,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       frameSettings: state.frameSettings,
       audioSettings: state.audioSettings,
       beatCutSettings: state.beatCutSettings,
+      beatFxSettings: state.beatFxSettings,
       textMode: state.textMode,
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -1052,6 +1105,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       frameSettings: project.frameSettings,
       audioSettings: project.audioSettings,
       beatCutSettings: project.beatCutSettings,
+      beatFxSettings: project.beatFxSettings,
       textMode: project.textMode,
       generation: emptyGeneration,
       currentView: 'home',

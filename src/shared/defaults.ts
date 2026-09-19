@@ -1,6 +1,8 @@
 import type {
   AudioSettings,
   BeatCutSettings,
+  BeatFxSettings,
+  BeatFxStyle,
   BeatTransitionStyle,
   CombinationSelectionSettings,
   CreativeVariationSettings,
@@ -128,6 +130,17 @@ export const DEFAULT_BEAT_CUT_SETTINGS: BeatCutSettings = {
   ctaEnabled: false,
   fallbackChunkCount: 4,
   allowedTransitionStyles: [...BEAT_TRANSITION_STYLES]
+}
+
+/** Every Beat FX punch style this app exposes. */
+export const BEAT_FX_STYLES: BeatFxStyle[] = ['zoomPunch', 'shake', 'flash', 'rgbGlitch', 'invertBlip', 'hueSwing']
+
+export const DEFAULT_BEAT_FX_SETTINGS: BeatFxSettings = {
+  hookEnabled: false,
+  bodyEnabled: false,
+  ctaEnabled: false,
+  fallbackChunkCount: 8,
+  allowedStyles: [...BEAT_FX_STYLES]
 }
 
 export const DEFAULT_TEXT_MODE: TextMode = 'perSegment'
