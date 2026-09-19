@@ -189,6 +189,12 @@ export function buildFilterGraph(
 
   const segmentDurations = segments.map((s) => computeEffectiveDuration(s, variation))
   const offsetsBeforeSegment = prefixSums(segmentDurations)
+  // Beat Cut's internal xfade joins shrink a segment below its nominal
+  // duration (each join overlaps two chunks instead of playing them back to
+  // back) — starts as a copy of the nominal durations and gets overwritten
+  // below with the real post-remix length wherever a plan is applied, so the
+  // outer hook/body/cta join always offsets against what's actually there.
+  const actualSegmentDurations = [...segmentDurations]
 
   segments.forEach((segment, i) => {
     const vLabel = `v${i}`
@@ -246,6 +252,7 @@ export function buildFilterGraph(
         const remix = applyBeatCutVideoRemix(curLabel, plan, i)
         filterLines.push(...remix.filterLines)
         curLabel = remix.videoLabel
+        actualSegmentDurations[i] = remix.duration
       }
       if (textImagePath) {
         // Text overlay is applied AFTER scale/rotate/zoom/color (same spot
@@ -316,8 +323,12 @@ export function buildFilterGraph(
       // mechanism handles both "loop if short" and "cut if long".
       extraInputArgs.push('-stream_loop', '-1', '-i', trackPath)
       const trackLabel = `aTrack${i}`
+      // Sized to actualSegmentDurations[i], not the nominal segmentDuration —
+      // when Beat Cut shrinks this segment's video, the attached track must
+      // match that shrunk length too, or this segment's audio would outlast
+      // its own video going into the concat with the next category.
       filterLines.push(
-        `[${trackInputIndex}:a]atrim=0:${segmentDuration.toFixed(3)},asetpts=PTS-STARTPTS,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[${trackLabel}]`
+        `[${trackInputIndex}:a]atrim=0:${actualSegmentDurations[i].toFixed(3)},asetpts=PTS-STARTPTS,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[${trackLabel}]`
       )
       mixLabels.push(trackLabel)
     }
@@ -330,16 +341,16 @@ export function buildFilterGraph(
       const silentInputIndex = nextInputIndex
       nextInputIndex++
       extraInputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000')
-      filterLines.push(`[${silentInputIndex}:a]atrim=0:${segmentDuration.toFixed(3)},asetpts=PTS-STARTPTS[${aLabel}]`)
+      filterLines.push(`[${silentInputIndex}:a]atrim=0:${actualSegmentDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[${aLabel}]`)
     }
     audioLabels.push(aLabel)
   })
 
   let result: FilterGraphResult
   if (settings.transition === 'crossfade') {
-    result = buildCrossfadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation, settings.crossfadeStyle)
+    result = buildCrossfadeGraph(actualSegmentDurations, videoLabels, audioLabels, filterLines, settings, extraInputArgs, settings.crossfadeStyle)
   } else if (settings.transition === 'fade') {
-    result = buildFadeGraph(segments, videoLabels, audioLabels, filterLines, settings, extraInputArgs, variation)
+    result = buildFadeGraph(actualSegmentDurations, videoLabels, audioLabels, filterLines, settings, extraInputArgs)
   } else {
     filterLines.push(
       `[${videoLabels[0]}][${audioLabels[0]}][${videoLabels[1]}][${audioLabels[1]}][${videoLabels[2]}][${audioLabels[2]}]concat=n=3:v=1:a=1[outv][outa]`
@@ -401,7 +412,7 @@ function clampTransitionDuration(a: number, b: number): number {
  * join. Total output duration matches the input's (same "shrinks slightly
  * per join" arithmetic as the main Gancho/Corpo/CTA crossfade joins).
  */
-function applyBeatCutVideoRemix(inLabel: string, plan: ChunkPlan, segmentIndex: number): { videoLabel: string; filterLines: string[] } {
+function applyBeatCutVideoRemix(inLabel: string, plan: ChunkPlan, segmentIndex: number): { videoLabel: string; duration: number; filterLines: string[] } {
   const { boundaries, order, transitions } = plan
   const chunkCount = boundaries.length - 1
   const filterLines: string[] = []
@@ -432,7 +443,7 @@ function applyBeatCutVideoRemix(inLabel: string, plan: ChunkPlan, segmentIndex: 
     curDuration = curDuration + nextDuration - t
   }
 
-  return { videoLabel: curLabel, filterLines }
+  return { videoLabel: curLabel, duration: curDuration, filterLines }
 }
 
 /**
@@ -541,17 +552,24 @@ function applyFullAudioOverlay(
   }
 }
 
+/**
+ * `durations` must be each segment's ACTUAL rendered length — the nominal
+ * (trim/speed-adjusted) duration normally, but the shrunk post-Beat-Cut
+ * length whenever that segment has a plan. Using the nominal duration here
+ * for a Beat-Cut segment tells fade/afade to start at a timestamp past where
+ * that segment's stream actually ends, which starves the filter of frames
+ * it's still waiting on — confirmed with a real render to silently collapse
+ * the whole output to a fraction of its intended length instead of erroring.
+ */
 function buildFadeGraph(
-  segments: [SegmentInfo, SegmentInfo, SegmentInfo],
+  durations: number[],
   videoLabels: string[],
   audioLabels: string[],
   filterLines: string[],
   settings: ExportSettings,
-  extraInputArgs: string[],
-  variation: VariationParameters
+  extraInputArgs: string[]
 ): FilterGraphResult {
   const T = settings.transitionDuration
-  const durations = segments.map((s) => computeEffectiveDuration(s, variation))
 
   const fadedVideoLabels = videoLabels.map((label, i) => {
     const d = durations[i]
@@ -595,17 +613,16 @@ function buildFadeGraph(
   }
 }
 
+/** See the note on {@link buildFadeGraph} — `durations` must be each segment's ACTUAL rendered length. */
 function buildCrossfadeGraph(
-  segments: [SegmentInfo, SegmentInfo, SegmentInfo],
+  durations: number[],
   videoLabels: string[],
   audioLabels: string[],
   filterLines: string[],
   settings: ExportSettings,
   extraInputArgs: string[],
-  variation: VariationParameters,
   style: BeatTransitionStyle
 ): FilterGraphResult {
-  const durations = segments.map((s) => computeEffectiveDuration(s, variation))
   const t1 = Math.min(settings.transitionDuration, Math.max(0.05, Math.min(durations[0], durations[1]) - 0.1))
 
   filterLines.push(
