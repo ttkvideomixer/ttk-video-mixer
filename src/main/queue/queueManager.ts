@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { rm, stat } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import type {
   CreativeVariationSettings,
   ExportSettings,
@@ -14,6 +15,7 @@ import { deriveRetryVariation, buildVariationSignature } from '@shared/variation
 import { MAX_VARIATION_RETRY_ATTEMPTS } from '@shared/defaults'
 import { processJob as defaultProcessJob, type ProcessJobHandle, type ProcessJobInput } from '../ffmpeg/videoProcessor'
 import { hammingDistanceHex } from '../ffmpeg/fingerprint'
+import { getDiskSpaceInfo } from '../utils/diskSpace'
 
 export interface QueueCallbacks {
   onJobUpdated: (job: GenerationJob) => void
@@ -44,6 +46,17 @@ type QueueState = 'idle' | 'running' | 'paused' | 'canceled' | 'finished'
 
 /** Fingerprints considered "practically the same image" (out of 192 bits total, 3 frames x 64 bits). */
 const SIMILARITY_HAMMING_THRESHOLD = 4
+
+/**
+ * Below this much free space, stop starting NEW jobs rather than let one
+ * fail mid-write (or fail the temp->final rename right after) with a raw
+ * filesystem error — the user explicitly wants generation to keep going
+ * right up to the edge of their disk, not stop early with an arbitrary
+ * conservative margin, so this is deliberately small: just enough to
+ * comfortably finish whatever's already in flight at the configured
+ * concurrency without ever truly hitting zero.
+ */
+const MIN_FREE_BYTES_TO_START_JOB = 500 * 1024 * 1024
 
 /**
  * Runs a fixed list of ffmpeg jobs with a bounded number of concurrent
@@ -240,6 +253,29 @@ export class GenerationQueue {
 
   private async runJob(job: GenerationJob): Promise<void> {
     this.activeCount++
+
+    const space = await getDiskSpaceInfo(dirname(job.outputPath))
+    if (space.freeBytes >= 0 && space.freeBytes < MIN_FREE_BYTES_TO_START_JOB) {
+      // Pause instead of starting a job that's likely to fail partway
+      // through (ffmpeg write error, or the temp->final rename finding
+      // nothing there) once the disk is nearly full. The job itself stays
+      // 'pending' — resetting the cursor means Resume (after the user frees
+      // space) picks up this exact job again, not just whatever comes next.
+      this.activeCount--
+      if (this.state === 'running') {
+        this.state = 'paused'
+        this.cursor = 0
+        this.callbacks.onLog({
+          id: `diskspace-${Date.now()}`,
+          timestamp: Date.now(),
+          fileName: job.outputFileName,
+          status: 'error',
+          message: `Geração pausada: só restam ${space.availableFormatted} de espaço livre no disco. Libere espaço e clique em Retomar.`
+        })
+        this.emitSummary()
+      }
+      return
+    }
 
     if (!this.options.exportSettings.overwriteExisting && (await fileExistsAndNonEmpty(job.outputPath))) {
       this.updateJob(job, 'skipped', { progress: 1, finishedAt: Date.now() })

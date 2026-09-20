@@ -11,6 +11,7 @@ import {
   DEFAULT_SILENCE_TRIM_SETTINGS,
   NEUTRAL_VARIATION_PARAMETERS
 } from '@shared/defaults'
+import * as diskSpace from '../utils/diskSpace'
 
 function makeJob(id: string, outputPath: string): GenerationJob {
   return {
@@ -238,6 +239,33 @@ describe('GenerationQueue concurrency', () => {
     // Exactly one of the two jobs had to retry (the one that lost the race for the shared hash).
     expect(jobB.attempt + jobC.attempt).toBeGreaterThan(0)
     expect(jobB.sha256).not.toBe(jobC.sha256)
+  })
+
+  it('pauses instead of starting a job when free disk space is critically low', async () => {
+    const diskSpaceSpy = vi.spyOn(diskSpace, 'getDiskSpaceInfo').mockResolvedValue({
+      freeBytes: 100 * 1024 * 1024,
+      availableFormatted: '100 MB'
+    })
+
+    const fakeProcessJob: ProcessJobFn = vi.fn(() => ({
+      promise: Promise.resolve({ sha256: 'sha', visualFingerprint: 'fp' }),
+      cancel: () => undefined
+    }))
+
+    const jobs = [makeJob('0', join(workDir, 'out0.mp4'))]
+    const callbacks = noopCallbacks()
+    const queue = new GenerationQueue(jobs, makeOptions(), callbacks, { processJob: fakeProcessJob })
+
+    queue.start()
+    // No onFinished fires here — the queue pauses, it doesn't finish. Give
+    // the pending disk-space check's microtask a turn to resolve.
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(fakeProcessJob).not.toHaveBeenCalled()
+    expect(jobs[0].status).toBe('pending')
+    expect(callbacks.onLog).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('espaço') }))
+
+    diskSpaceSpy.mockRestore()
   })
 
   it('does not retry on collision when creative variation is disabled', async () => {
