@@ -97,6 +97,8 @@ export interface FilterGraphResult {
   filterComplex: string
   videoOutputLabel: string
   audioOutputLabel: string
+  /** Exact expected duration of videoOutputLabel/audioOutputLabel at this point — sum of actualSegmentDurations minus whatever fade/crossfade overlap consumed. Ground truth for the final sync clamp in buildFilterGraph. */
+  totalDuration: number
 }
 
 const FALLBACK_DURATION_SECONDS = 3
@@ -461,7 +463,8 @@ export function buildFilterGraph(
       extraInputArgs,
       filterComplex: filterLines.join(';'),
       videoOutputLabel: 'outv',
-      audioOutputLabel: 'outa'
+      audioOutputLabel: 'outa',
+      totalDuration: actualSegmentDurations.reduce((sum, d) => sum + d, 0)
     }
   }
 
@@ -487,6 +490,37 @@ export function buildFilterGraph(
     // overlay above, just a different image.
     result = applyFrameOverlay(result, extras.hookTextImagePath, width, height, nextInputIndex, maxDuration)
     nextInputIndex++
+  }
+
+  // Last-resort whole-output sync, applied AFTER every overlay above (not
+  // right after the transition join) — every segment's own video/audio
+  // pair is already clamped to match (the per-segment tpad/apad steps
+  // earlier in this function), but two independent things can still
+  // reintroduce a gap between the truly final [outv]/[outa]: concatenating
+  // three separately-clamped, really-decoded segments leaves a small
+  // residual (confirmed with real footage: individually-matched segments,
+  // yet the combined output drifted ~150ms — likely codec frame-boundary
+  // rounding compounding across joins), and mixing in a full-span track via
+  // amix (applyFullAudioOverlay) was confirmed, with a real render, to NOT
+  // reliably preserve trailing silence padding on its first input despite
+  // `duration=first` — the mix came out at the track-less audio's
+  // pre-padding length as if the padding had never happened. Whatever
+  // dropout-detection logic causes that, forcing the truly-final labels to
+  // result.totalDuration here — after anything else that could touch
+  // timing — closes it regardless of which of these (or something else
+  // entirely) is responsible in a given render.
+  const syncedVideoLabel = 'outvFinal'
+  const syncedAudioLabel = 'outaFinal'
+  const finalFilterLines = [
+    result.filterComplex,
+    `[${result.videoOutputLabel}]tpad=stop_mode=clone:stop_duration=${result.totalDuration.toFixed(3)},trim=0:${result.totalDuration.toFixed(3)},setpts=PTS-STARTPTS[${syncedVideoLabel}]`,
+    `[${result.audioOutputLabel}]apad,atrim=0:${result.totalDuration.toFixed(3)},asetpts=PTS-STARTPTS[${syncedAudioLabel}]`
+  ]
+  result = {
+    ...result,
+    filterComplex: finalFilterLines.join(';'),
+    videoOutputLabel: syncedVideoLabel,
+    audioOutputLabel: syncedAudioLabel
   }
 
   return result
@@ -709,7 +743,8 @@ function applyFrameOverlay(
     extraInputArgs: [...result.extraInputArgs, '-loop', '1', '-t', maxDuration.toFixed(3), '-i', framePath],
     filterComplex: `${result.filterComplex};${frameChain};${overlayLine}`,
     videoOutputLabel: outLabel,
-    audioOutputLabel: result.audioOutputLabel
+    audioOutputLabel: result.audioOutputLabel,
+    totalDuration: result.totalDuration
   }
 }
 
@@ -737,7 +772,8 @@ function applyFullAudioOverlay(
     extraInputArgs: [...result.extraInputArgs, '-stream_loop', '-1', '-i', trackPath],
     filterComplex: `${result.filterComplex};${trackChain};${mixLine}`,
     videoOutputLabel: result.videoOutputLabel,
-    audioOutputLabel: outLabel
+    audioOutputLabel: outLabel,
+    totalDuration: result.totalDuration
   }
 }
 
@@ -798,7 +834,11 @@ function buildFadeGraph(
     extraInputArgs,
     filterComplex: filterLines.join(';'),
     videoOutputLabel: 'outv',
-    audioOutputLabel: 'outa'
+    audioOutputLabel: 'outa',
+    // fade/afade only apply an in/out effect — unlike crossfade's xfade/
+    // acrossfade, nothing here overlaps or removes content, so the concat
+    // right above is a plain, full-length join.
+    totalDuration: durations.reduce((sum, d) => sum + d, 0)
   }
 }
 
@@ -831,6 +871,7 @@ function buildCrossfadeGraph(
     extraInputArgs,
     filterComplex: filterLines.join(';'),
     videoOutputLabel: 'outv',
-    audioOutputLabel: 'outa'
+    audioOutputLabel: 'outa',
+    totalDuration: mergedDuration01 + durations[2] - t2
   }
 }
