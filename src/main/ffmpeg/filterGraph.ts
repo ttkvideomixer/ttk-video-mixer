@@ -340,9 +340,13 @@ export function buildFilterGraph(
         // the tail of the whole video once the last segment's audio runs
         // out first. A hard trim back to the exact expected duration here
         // closes that gap regardless of why the drift happened.
+        // tpad (clone the last frame for up to `expected` seconds if the
+        // stream came up short) then trim back to exactly `expected` —
+        // pads-or-cuts either direction, the same safety-net shape as the
+        // audio side's apad+atrim a few lines below, for the same reason.
         const expected = actualSegmentDurations[i]
         const clampedLabel = `bfxClamp${i}`
-        filterLines.push(`[${curLabel}]trim=0:${expected.toFixed(3)},setpts=PTS-STARTPTS[${clampedLabel}]`)
+        filterLines.push(`[${curLabel}]tpad=stop_mode=clone:stop_duration=${expected.toFixed(3)},trim=0:${expected.toFixed(3)},setpts=PTS-STARTPTS[${clampedLabel}]`)
         curLabel = clampedLabel
       }
       if (textImagePath) {
@@ -424,16 +428,28 @@ export function buildFilterGraph(
       mixLabels.push(trackLabel)
     }
 
+    const aRawLabel = `${aLabel}Raw`
     if (mixLabels.length === 2) {
-      filterLines.push(`[${mixLabels[0]}][${mixLabels[1]}]amix=inputs=2:duration=first:dropout_transition=0[${aLabel}]`)
+      filterLines.push(`[${mixLabels[0]}][${mixLabels[1]}]amix=inputs=2:duration=first:dropout_transition=0[${aRawLabel}]`)
     } else if (mixLabels.length === 1) {
-      filterLines.push(`[${mixLabels[0]}]anull[${aLabel}]`)
+      filterLines.push(`[${mixLabels[0]}]anull[${aRawLabel}]`)
     } else {
       const silentInputIndex = nextInputIndex
       nextInputIndex++
       extraInputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000')
-      filterLines.push(`[${silentInputIndex}:a]atrim=0:${actualSegmentDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[${aLabel}]`)
+      filterLines.push(`[${silentInputIndex}:a]anull[${aRawLabel}]`)
     }
+    // Final safety net: no matter which branch above produced this
+    // segment's audio, or how closely its own math is supposed to track
+    // the video side, snap it to EXACTLY actualSegmentDurations[i] —
+    // padding with silence if it came up short, trimming if it ran long.
+    // A real source file's audio/video streams can differ by more than
+    // rounding (confirmed with an HDR source elsewhere in this file), and
+    // 'cut' mode's concat holds the shorter stream's last frame/sample
+    // until the longer one in the same segment also finishes — which is
+    // exactly what reads as "the video freezes right when it should be
+    // ending." This closes that gap regardless of why a mismatch happens.
+    filterLines.push(`[${aRawLabel}]apad,atrim=0:${actualSegmentDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[${aLabel}]`)
     audioLabels.push(aLabel)
   })
 
