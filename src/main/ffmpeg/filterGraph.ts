@@ -302,7 +302,22 @@ export function buildFilterGraph(
       if (fxBoundaries) {
         const nativeWidth = segment.width && segment.width % 2 === 0 ? segment.width : segment.width ? segment.width + 1 : width
         const nativeHeight = segment.height && segment.height % 2 === 0 ? segment.height : segment.height ? segment.height + 1 : height
-        const fx = applyBeatFx(curLabel, fxBoundaries, extras.beatFx.allowedStyles, extras.beatFx.seed + i * 17, i, nativeWidth, nativeHeight)
+        // Forces every decoded frame to a fixed, known size before the
+        // zoom/shake effects' own per-frame `iw`/`ih`-based math runs.
+        // Confirmed necessary with a real user file: some phone-recorded
+        // HDR/Dolby-Vision source decodes with the reported frame size
+        // fluctuating from frame to frame (seen directly via showinfo —
+        // e.g. 1382x2456 on one frame, 1318x2344 on the next, despite the
+        // stream itself being tagged 1920x1080) when this ffmpeg build
+        // handles that codec profile. The rest of the pipeline never
+        // noticed because its own scale stage further downstream already
+        // forces a fixed target size — Beat FX runs before that stage and
+        // was the first thing to feed unstable per-frame dimensions into a
+        // filter that assumes they're constant, which crashed the encode
+        // on some segments and silently truncated the video elsewhere.
+        const normalizedLabel = `bfxNorm${i}`
+        filterLines.push(`[${curLabel}]scale=${nativeWidth}:${nativeHeight}[${normalizedLabel}]`)
+        const fx = applyBeatFx(normalizedLabel, fxBoundaries, extras.beatFx.allowedStyles, extras.beatFx.seed + i * 17, i, nativeWidth, nativeHeight)
         filterLines.push(...fx.filterLines)
         curLabel = fx.videoLabel
       }
@@ -311,6 +326,24 @@ export function buildFilterGraph(
         filterLines.push(...remix.filterLines)
         curLabel = remix.videoLabel
         actualSegmentDurations[i] = remix.duration
+      }
+      if (fxBoundaries || plan) {
+        // Beat FX/Beat Cut both slice this segment into several `trim`
+        // pieces on PTS timestamps and reassemble them — on a variable-
+        // frame-rate source (common with phone-recorded footage) that can
+        // accumulate a small amount of extra video content per boundary,
+        // silently drifting the reassembled video a bit LONGER than the
+        // exact nominal duration the audio side (which isn't chunked the
+        // same way) uses. Confirmed via a real user file: video ended up
+        // several seconds longer than its own segment's audio, which in
+        // 'cut' mode's concat manifests as the audio track going silent for
+        // the tail of the whole video once the last segment's audio runs
+        // out first. A hard trim back to the exact expected duration here
+        // closes that gap regardless of why the drift happened.
+        const expected = actualSegmentDurations[i]
+        const clampedLabel = `bfxClamp${i}`
+        filterLines.push(`[${curLabel}]trim=0:${expected.toFixed(3)},setpts=PTS-STARTPTS[${clampedLabel}]`)
+        curLabel = clampedLabel
       }
       if (textImagePath) {
         // Text overlay is applied AFTER scale/rotate/zoom/color (same spot
