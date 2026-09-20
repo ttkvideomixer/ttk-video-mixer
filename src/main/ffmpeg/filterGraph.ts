@@ -287,11 +287,13 @@ export function buildFilterGraph(
       fxBoundaries = resolved.length > 2 ? resolved : null
     }
 
+    const rawVLabel = `${vLabel}Raw`
     if (!plan && !fxBoundaries && !textImagePath) {
-      // Exact original single-chain path — byte-for-byte identical output
-      // when neither feature touches this segment.
+      // Otherwise-original single-chain path when neither feature touches
+      // this segment — still finishes through the universal duration clamp
+      // below, same as every other path.
       const chain = [...preStages, scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages].join(',')
-      filterLines.push(`[${i}:v]${chain}${fpsFilter}[${vLabel}]`)
+      filterLines.push(`[${i}:v]${chain}${fpsFilter}[${rawVLabel}]`)
     } else {
       let curLabel = `${i}:v`
       if (preStages.length > 0) {
@@ -327,28 +329,6 @@ export function buildFilterGraph(
         curLabel = remix.videoLabel
         actualSegmentDurations[i] = remix.duration
       }
-      if (fxBoundaries || plan) {
-        // Beat FX/Beat Cut both slice this segment into several `trim`
-        // pieces on PTS timestamps and reassemble them — on a variable-
-        // frame-rate source (common with phone-recorded footage) that can
-        // accumulate a small amount of extra video content per boundary,
-        // silently drifting the reassembled video a bit LONGER than the
-        // exact nominal duration the audio side (which isn't chunked the
-        // same way) uses. Confirmed via a real user file: video ended up
-        // several seconds longer than its own segment's audio, which in
-        // 'cut' mode's concat manifests as the audio track going silent for
-        // the tail of the whole video once the last segment's audio runs
-        // out first. A hard trim back to the exact expected duration here
-        // closes that gap regardless of why the drift happened.
-        // tpad (clone the last frame for up to `expected` seconds if the
-        // stream came up short) then trim back to exactly `expected` —
-        // pads-or-cuts either direction, the same safety-net shape as the
-        // audio side's apad+atrim a few lines below, for the same reason.
-        const expected = actualSegmentDurations[i]
-        const clampedLabel = `bfxClamp${i}`
-        filterLines.push(`[${curLabel}]tpad=stop_mode=clone:stop_duration=${expected.toFixed(3)},trim=0:${expected.toFixed(3)},setpts=PTS-STARTPTS[${clampedLabel}]`)
-        curLabel = clampedLabel
-      }
       if (textImagePath) {
         // Text overlay is applied AFTER scale/rotate/zoom/color (same spot
         // drawtext used to run in postStages) so it stays crisp and
@@ -367,15 +347,30 @@ export function buildFilterGraph(
         filterLines.push(`[${scaledLabel}][${imgLabel}]overlay=0:0[${overlaidLabel}]`)
 
         if (fpsFilter) {
-          filterLines.push(`[${overlaidLabel}]fps=${settings.fps}[${vLabel}]`)
+          filterLines.push(`[${overlaidLabel}]fps=${settings.fps}[${rawVLabel}]`)
         } else {
-          filterLines.push(`[${overlaidLabel}]null[${vLabel}]`)
+          filterLines.push(`[${overlaidLabel}]null[${rawVLabel}]`)
         }
       } else {
         const chain = [scaleFilter, 'setsar=1', 'format=yuv420p', ...postStages].join(',')
-        filterLines.push(`[${curLabel}]${chain}${fpsFilter}[${vLabel}]`)
+        filterLines.push(`[${curLabel}]${chain}${fpsFilter}[${rawVLabel}]`)
       }
     }
+    // Universal safety net, same shape as the audio side's apad+atrim a bit
+    // further down: no matter which path above produced this segment's
+    // video, snap it to EXACTLY actualSegmentDurations[i] — cloning the
+    // last frame if it came up short, trimming if it ran long. Confirmed
+    // necessary with a real user file where NEITHER Beat Cut nor Beat FX
+    // was even active for that category: the plain pass-through path had no
+    // duration enforcement of its own, so when the source's real decoded
+    // length didn't exactly match the nominal ffprobe-derived duration
+    // (speed variation applied on top makes this worse — any rounding gets
+    // scaled too), video quietly ran long while audio (already always
+    // clamped) did not, reproducing the exact "video keeps going after the
+    // sound stops" symptom this was supposed to eliminate everywhere.
+    filterLines.push(
+      `[${rawVLabel}]tpad=stop_mode=clone:stop_duration=${actualSegmentDurations[i].toFixed(3)},trim=0:${actualSegmentDurations[i].toFixed(3)},setpts=PTS-STARTPTS[${vLabel}]`
+    )
     videoLabels.push(vLabel)
 
     // Which per-category mute flag / attached track applies to this segment
